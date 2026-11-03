@@ -1,8 +1,0 @@
-[workspace]
-members = ["src-tauri", "crates/clipdrop-core", "crates/clipdrop-clipboard"]
-resolver = "2"
-
-[profile.release]
-strip = true
-lto = "thin"
-codegen-units = 1

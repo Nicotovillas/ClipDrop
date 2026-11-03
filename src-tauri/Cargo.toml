@@ -6,6 +6,29 @@ authors = ["Nicolás Tovillas"]
 edition = "2021"
 publish = false
 default-run = "clipdrop"
+license = "UNLICENSED"
+
+[features]
+test-tools = []
+
+[[bin]]
+name = "clipdrop"
+path = "src/main.rs"
+
+[[bin]]
+name = "fixture-downloader"
+path = "tests/tools/downloader.rs"
+required-features = ["test-tools"]
+
+[[bin]]
+name = "clipboard-smoke"
+path = "tests/tools/clipboard.rs"
+required-features = ["test-tools"]
+
+[[test]]
+name = "engine"
+path = "tests/engine.rs"
+required-features = ["test-tools"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -18,8 +41,22 @@ tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dirs = "6"
-clipdrop-core = { path = "../crates/clipdrop-core" }
-clipdrop-clipboard = { path = "../crates/clipdrop-clipboard" }
-
-[dev-dependencies]
+url = "2"
 tempfile = "3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+clipboard-win = { version = "=5.4.3", features = ["std"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSPasteboard", "NSPasteboardItem"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSEnumerator", "NSString", "NSURL"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

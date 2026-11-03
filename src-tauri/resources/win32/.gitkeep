@@ -1,0 +1,2 @@
+# Resource directory for window-free cargo check/test.
+# npm run build:windows populates the verified engine before packaging.

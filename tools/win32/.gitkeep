@@ -1,2 +1,0 @@
-# Keep this resource directory available to window-free cargo check/test.
-# npm run prepare:windows populates the verified engine before packaging.

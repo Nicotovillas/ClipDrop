@@ -9,16 +9,13 @@
     "start": "tauri dev",
     "tauri": "tauri",
     "test": "npm run test:ui && npm run test:rust",
-    "test:ui": "node --test tests/*.test.cjs",
-    "test:rust": "node scripts/prepare-ui.cjs && cargo test --workspace",
-    "check": "node scripts/prepare-ui.cjs && node scripts/check.cjs && cargo fmt --all -- --check && cargo check --workspace",
-    "prepare:ui": "node scripts/prepare-ui.cjs",
-    "prepare:windows": "node scripts/prepare-windows.cjs",
-    "build:windows": "npm run prepare:windows && tauri build --target x86_64-pc-windows-msvc --bundles nsis && node scripts/collect-packages.cjs",
-    "verify:windows": "node scripts/verify-package.cjs",
-    "build:mac": "tauri build --target aarch64-apple-darwin --bundles app && node scripts/collect-packages.cjs",
-    "build:icons": "node scripts/build-icons.cjs",
-    "checksums": "node scripts/checksums.cjs"
+    "test:ui": "node --test scripts/tests/*.test.cjs",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --features test-tools",
+    "check": "node scripts/check.cjs && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo check --manifest-path src-tauri/Cargo.toml --all-targets --features test-tools",
+    "build:windows": "node scripts/prepare-windows.cjs && tauri build --target x86_64-pc-windows-msvc --bundles nsis && node scripts/package.cjs",
+    "verify:windows": "node scripts/windows.cjs",
+    "build:mac": "tauri build --target aarch64-apple-darwin --bundles app && node scripts/package.cjs",
+    "build:icons": "node scripts/icons.cjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

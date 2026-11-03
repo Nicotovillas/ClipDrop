@@ -4,9 +4,7 @@
   "version": "0.3.0",
   "identifier": "local.nit.clipdrop",
   "build": {
-    "beforeDevCommand": "node scripts/prepare-ui.cjs",
-    "beforeBuildCommand": "node scripts/prepare-ui.cjs",
-    "frontendDist": "../.build/frontend"
+    "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
@@ -39,9 +37,9 @@
     "shortDescription": "Descargador personal de videos",
     "copyright": "Copyright © 2026 Nicolás Tovillas",
     "icon": [
-      "../assets/icon.png",
-      "../assets/icon.ico",
-      "../assets/icon.icns"
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
     ],
     "macOS": {
       "minimumSystemVersion": "11.0"

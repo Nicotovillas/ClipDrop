@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipDrop</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="bridge.js" defer></script>
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><img src="icon.svg" width="26" height="26" alt=""><h1>ClipDrop</h1></div>
+      <nav role="tablist" aria-label="Secciones">
+        <button id="download-tab" type="button" role="tab" aria-selected="true" aria-controls="download-panel">Descarga</button>
+        <button id="config-tab" type="button" role="tab" aria-selected="false" aria-controls="config-panel" tabindex="-1">Config</button>
+      </nav>
+    </header>
+
+    <div class="notice" id="missing" role="alert" hidden></div>
+    <p id="error" class="error" role="alert" hidden></p>
+    <section id="download-panel" role="tabpanel" aria-labelledby="download-tab">
+    <form id="download-form">
+      <fieldset id="fields">
+        <label for="url">Enlace del video</label>
+        <div class="input-row url-field">
+          <input id="url" name="url" type="url" placeholder="https://x.com/usuario/status/…" required spellcheck="false" autocomplete="off">
+          <button id="paste" type="button" class="quiet">Pegar</button>
+        </div>
+        <div class="actions">
+          <button id="copy" type="button" class="secondary" title="Usa un archivo temporal para pegar el video en otra app."><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="2"/><path d="M5 13H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/></svg>Copiar video</button>
+          <button id="save" type="submit" class="primary"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m-4-4 4 4 4-4M4 15v2h12v-2"/></svg>Descargar</button>
+        </div>
+      </fieldset>
+    </form>
+
+    <section class="transfer" aria-label="Estado de descarga">
+      <div class="status-row"><p id="status" role="status" aria-live="polite"></p><button id="cancel" class="quiet" hidden>Cancelar</button></div>
+      <progress id="progress" max="1" hidden aria-label="Progreso de la descarga"></progress>
+      <div id="results" hidden>
+        <ul id="file-list"></ul>
+        <div class="result-actions"><button id="reveal" class="quiet">Mostrar en carpeta</button><button id="copy-result" class="quiet">Copiar archivo</button></div>
+      </div>
+      <details id="log-details" hidden><summary>Detalle de la descarga</summary><pre id="log"></pre></details>
+    </section>
+
+    </section>
+    <section id="config-panel" role="tabpanel" aria-labelledby="config-tab" hidden>
+      <fieldset id="config-fields">
+        <label for="destination">Carpeta de descarga</label>
+        <div class="input-row">
+          <input id="destination" type="text" placeholder="Elegí una carpeta…" readonly aria-label="Carpeta de descarga">
+          <button id="choose" type="button" class="quiet">Elegir…</button>
+        </div>
+        <details class="advanced">
+          <summary>Opciones avanzadas</summary>
+        <div class="session-row">
+          <label for="browser">Sesión del navegador</label>
+          <select id="browser">
+            <option value="">No usar</option>
+            <option value="edge">Microsoft Edge</option>
+            <option value="chrome">Google Chrome</option>
+            <option value="brave">Brave</option>
+            <option value="firefox">Firefox</option>
+            <option value="safari" id="safari">Safari</option>
+          </select>
+        </div>
+        <p class="hint">Sólo si el sitio pide sesión. Lee las cookies del navegador elegido.</p>
+        </details>
+      </fieldset>
+      <div class="temporary">
+        <div class="temporary-row"><span>Temporales <span id="temporary-size">0 B</span></span><button id="clean" class="quiet" title="Elimina los videos temporales usados al copiar. Hacelo cuando termines de pegarlos." disabled>Eliminar</button></div>
+      </div>
+      <p id="config-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+</body>
+</html>

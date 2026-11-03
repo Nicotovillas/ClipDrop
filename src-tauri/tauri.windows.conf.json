@@ -4,7 +4,7 @@
       "nsis"
     ],
     "resources": {
-      "../tools/win32/": "tools/"
+      "resources/win32/": "tools/"
     },
     "windows": {
       "webviewInstallMode": {
@@ -15,7 +15,7 @@
         "installMode": "currentUser",
         "displayLanguageSelector": false,
         "startMenuFolder": "ClipDrop",
-        "template": "installer.nsi"
+        "template": "installer/installer.nsi"
       }
     }
   }
