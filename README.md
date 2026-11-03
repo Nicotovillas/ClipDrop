@@ -9,13 +9,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Nicotovillas/ClipDrop/releases/download/v0.3.0/ClipDrop-Setup-x64-0.3.0.exe"><strong>Descargar para Windows</strong></a>
+  <a href="https://github.com/Nicotovillas/ClipDrop/releases/download/v0.3.1/ClipDrop-Setup-x64-0.3.1.exe"><strong>Descargar para Windows</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/Nicotovillas/ClipDrop/releases/download/v0.3.0/ClipDrop-Mac-arm64-0.3.0.zip"><strong>Descargar para Mac</strong></a>
+  <a href="https://github.com/Nicotovillas/ClipDrop/releases/download/v0.3.1/ClipDrop-Mac-arm64-0.3.1.zip"><strong>Descargar para Mac</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Nicotovillas/ClipDrop/releases/tag/v0.3.0">v0.3.0</a>
+  <a href="https://github.com/Nicotovillas/ClipDrop/releases/tag/v0.3.1">v0.3.1</a>
   &nbsp;·&nbsp; Windows x64 y Mac Apple Silicon
 </p>
 
