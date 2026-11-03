@@ -1,0 +1,48 @@
+name: Attach verified release packages
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Build and verify run
+        required: true
+        type: string
+      release_tag:
+        description: Existing draft release tag
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ inputs.run_id }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - name: Attach exact tested packages to draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(gh run view "$RUN_ID" --json conclusion --jq .conclusion)" = success
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
+          tested_sha=$(gh run view "$RUN_ID" --json headSha --jq .headSha)
+          release_sha=$(gh release view "$RELEASE_TAG" --json targetCommitish --jq .targetCommitish)
+          test "$tested_sha" = "$release_sha"
+          gh run download "$RUN_ID" --dir artifacts
+          mkdir release
+          for platform in Windows macOS; do
+            folder="artifacts/ClipDrop-$platform"
+            (cd "$folder" && sha256sum --check SHA256SUMS-*.txt)
+            cp "$folder"/ClipDrop-*.zip release/
+            cat "$folder"/SHA256SUMS-*.txt >> "release/SHA256SUMS-${RELEASE_TAG#v}.txt"
+          done
+          cp artifacts/ClipDrop-Windows/defender-report.json release/
+          gh release upload "$RELEASE_TAG" release/* --clobber
