@@ -2,11 +2,11 @@
 dist/
 .DS_Store
 node_modules/
-src-tauri/resources/win32/*
-!src-tauri/resources/win32/.gitkeep
+src/back/resources/win32/*
+!src/back/resources/win32/.gitkeep
 /target/
-/src-tauri/target/
-/src-tauri/gen/
+/src/back/target/
+/src/back/gen/
 .env
 .env.*
 *.p12

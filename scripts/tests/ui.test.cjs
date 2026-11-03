@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM } = require('jsdom');
-const html = fs.readFileSync(path.join(__dirname, '../../src/index.html'), 'utf8');
-const script = fs.readFileSync(path.join(__dirname, '../../src/renderer.js'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '../../src/front/index.html'), 'utf8');
+const script = fs.readFileSync(path.join(__dirname, '../../src/front/renderer.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function fixture(t, overrides = {}) {
   const dom = new JSDOM(html, { runScripts: 'outside-only' });

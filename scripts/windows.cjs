@@ -24,7 +24,7 @@ function nsisPayload(binary) {
 function verify() {
   const root = path.resolve(__dirname, '..');
   const version = require('../package.json').version;
-  const pinned = require('../src-tauri/resources/yt-dlp.json');
+  const pinned = require('../src/back/resources/yt-dlp.json');
   const installer = path.join(root, 'dist', `ClipDrop-Setup-x64-${version}.exe`);
   function verifyPE(file, machines = [0x8664]) {
     const bytes = fs.readFileSync(file);
@@ -49,7 +49,7 @@ function verify() {
     assert.ok(app, 'Falta ClipDrop.exe en el instalador.');
     assert.ok(engine, 'Falta yt-dlp.exe en el instalador.');
     const packagedApp = verifyPE(app);
-    const expectedApp = nsisPayload(verifyPE(path.join(root, 'src-tauri', 'target', 'x86_64-pc-windows-msvc', 'release', 'clipdrop.exe')));
+    const expectedApp = nsisPayload(verifyPE(path.join(root, 'src', 'back', 'target', 'x86_64-pc-windows-msvc', 'release', 'clipdrop.exe')));
     const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
     assert.equal(sha256(packagedApp), sha256(expectedApp), 'El instalador no contiene la app de este build con el marcador NSIS de Tauri.');
     assert.equal(sha256(verifyPE(path.join(root, 'dist', 'win-unpacked', 'ClipDrop.exe'))), sha256(packagedApp), 'La app preparada para Defender difiere del payload instalado.');

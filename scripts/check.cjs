@@ -13,6 +13,6 @@ function inspect(directory) {
     }
   }
 }
-inspect(path.join(root, 'src'));
+inspect(path.join(root, 'src', 'front'));
 inspect(path.join(root, 'scripts'));
 if (!process.exitCode) console.log('Sintaxis de todos los archivos JavaScript correcta.');

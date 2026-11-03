@@ -1,10 +1,9 @@
 # ClipDrop
 
-App personal Tauri 2 (Rust + HTML/CSS/JavaScript) para Windows (principal) y macOS que usa yt-dlp.
-No usar Python para la GUI.
+Aplicación de escritorio con Tauri 2 y yt-dlp. Windows es la plataforma principal; Mac Apple Silicon es secundaria. Interfaz HTML/CSS/JavaScript y backend Rust; no usar Python para la GUI.
 
-- No iniciar la app ni servidores salvo pedido explícito. Build y pruebas finitas del motor sí están permitidos.
-- No consultar sesiones del navegador ni descargar videos reales durante verificaciones sin pedido del usuario.
-- No publicar, subir ni instalar servicios sin pedido explícito del usuario. Fuente/repositorio GitHub privado autorizados el 2026-11-03; no hacer público el proyecto por defecto.
-- Mantener explícito que copiar un archivo usa almacenamiento temporal y depende del receptor.
-- Eliminar únicamente temporales propios; preservar siempre las descargas guardadas por el usuario.
+- Conservar la interfaz compacta de 560×300 y las pestañas Descarga/Config.
+- Al copiar un video, indicar que usa almacenamiento temporal y depende de que la aplicación receptora acepte archivos.
+- Eliminar únicamente temporales propios; preservar las descargas guardadas.
+- Verificar con `npm test` y `npm run check`. Las pruebas usan fixtures: no descargar videos reales ni leer sesiones del navegador sin un pedido explícito.
+- Publicar releases o cambiar la visibilidad del repositorio sólo ante un pedido explícito.

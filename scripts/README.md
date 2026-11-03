@@ -12,9 +12,9 @@ Los tests son finitos y no abren ClipDrop. Usan un descargador ficticio y archiv
 
 ## Estructura
 
-Todo Rust pertenece a un solo paquete en `src-tauri/`. `app.rs` prepara la ventana, `commands.rs` recibe acciones de la interfaz, `state.rs` coordina operaciones y preferencias, `engine.rs` ejecuta yt-dlp, `storage.rs` administra temporales y `clipboard/` implementa las APIs de Windows y Mac. La interfaz se carga directamente desde `src/`.
+Todo Rust pertenece a un solo paquete en `src/back/`. `app.rs` prepara la ventana, `commands.rs` recibe acciones de la interfaz, `state.rs` coordina operaciones y preferencias, `engine.rs` ejecuta yt-dlp, `storage.rs` administra temporales y `clipboard/` implementa las APIs de Windows y Mac. La interfaz se carga directamente desde `src/front/`.
 
-Las pruebas Rust están en `src-tauri/tests/`; las de interfaz y herramientas, en `scripts/tests/`. La opción Rust `test-tools` habilita exclusivamente el CLI ficticio y el smoke del portapapeles. Los builds de distribución no la activan y compilan sólo ClipDrop.
+Las pruebas Rust están en `src/back/tests/`; las de interfaz y herramientas, en `scripts/tests/`. La opción Rust `test-tools` habilita exclusivamente el CLI ficticio y el smoke del portapapeles. Los builds de distribución no la activan y compilan sólo ClipDrop.
 
 ## Paquetes
 
@@ -26,9 +26,9 @@ npm run verify:windows # Inspecciona NSIS con 7-Zip, sin ejecutarlo
 npm run build:mac      # Mac; rustup target add aarch64-apple-darwin si hace falta
 ```
 
-Los paquetes y sus SHA256 se generan en `dist/`. `npm run build:icons` genera los íconos de distribución desde `src/icon.svg`.
+Los paquetes y sus SHA256 se generan en `dist/`. `npm run build:icons` genera los íconos de distribución desde `src/front/icon.svg`.
 
-El motor Windows se fija por versión/SHA256 en `src-tauri/resources/yt-dlp.json`; su preparación comprueba el binario oficial y conserva licencias/procedencia. El NSIS instala por usuario, crea la entrada de Inicio y no abre la app ni crea un acceso en el escritorio. Su plantilla y licencia están en `src-tauri/installer/`.
+El motor Windows se fija por versión/SHA256 en `src/back/resources/yt-dlp.json`; su preparación comprueba el binario oficial y conserva licencias/procedencia. El NSIS instala por usuario, crea la entrada de Inicio y no abre la app ni crea un acceso en el escritorio. Su plantilla y licencia están en `src/back/installer/`.
 
 El verificador contempla únicamente la sustitución del marcador NSIS que realiza Tauri y exige coincidencia del resto del ejecutable, del motor y del staging escaneado. El colector Mac sella el bundle con firma ad hoc local y la comprueba antes de comprimir; no equivale a Developer ID o notarización.
 

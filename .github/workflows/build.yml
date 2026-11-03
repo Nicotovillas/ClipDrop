@@ -32,7 +32,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - name: Native file clipboard roundtrip (no window)
-        run: cargo run --manifest-path src-tauri/Cargo.toml --locked --features test-tools --bin clipboard-smoke
+        run: cargo run --manifest-path src/back/Cargo.toml --locked --features test-tools --bin clipboard-smoke
       - if: runner.os == 'Windows'
         run: npm run build:windows
       - if: runner.os == 'macOS'

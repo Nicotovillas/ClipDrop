@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/icon.svg" width="112" height="112" alt="ClipDrop">
+  <img src="src/front/icon.svg" width="112" height="112" alt="ClipDrop">
 </p>
 
 <h1 align="center">ClipDrop</h1>
@@ -43,8 +43,8 @@ Si el sitio pide sesión, elegí tu navegador en **Config → Opciones avanzadas
 
 ## Desarrollo
 
-- `src/`: interfaz HTML, CSS y JavaScript.
-- `src-tauri/`: backend Rust, configuración e instalador.
+- `src/front/`: interfaz HTML, CSS y JavaScript.
+- `src/back/`: backend Rust, configuración e instalador.
 - `scripts/`: herramientas de desarrollo, empaquetado y verificación.
 
 [Guía de desarrollo y distribución](scripts/README.md). Hecho con Tauri y yt-dlp.
