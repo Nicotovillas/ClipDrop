@@ -14,6 +14,7 @@
     "check": "node scripts/check.cjs && cargo fmt --manifest-path desktop/Cargo.toml -- --check && cargo check --manifest-path desktop/Cargo.toml --all-targets --features test-tools",
     "build:windows": "node scripts/prepare-windows.cjs && tauri build --target x86_64-pc-windows-msvc --bundles nsis && node scripts/package.cjs",
     "verify:windows": "node scripts/windows.cjs",
+    "build:store": "node scripts/store.cjs --validate && node scripts/prepare-windows.cjs && tauri build --target x86_64-pc-windows-msvc --no-bundle && node scripts/store.cjs",
     "build:mac": "tauri build --target aarch64-apple-darwin --bundles app && node scripts/package.cjs",
     "build:icons": "node scripts/icons.cjs"
   },

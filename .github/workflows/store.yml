@@ -1,0 +1,60 @@
+name: Prepare Microsoft Store MSIX
+on:
+  workflow_dispatch:
+    inputs:
+      test_identity:
+        description: Test packaging only (TEST-NO-SUBMIT; never upload to Partner Center)
+        type: boolean
+        default: false
+      identity_name:
+        description: Package Identity Name copied from Partner Center
+        type: string
+      publisher:
+        description: Package Publisher (CN=...) copied from Partner Center
+        type: string
+      publisher_display_name:
+        description: Publisher Display Name copied from Partner Center
+        type: string
+      display_name:
+        description: Reserved product display name
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  msix:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      STORE_TEST_IDENTITY: ${{ inputs.test_identity }}
+      STORE_IDENTITY_NAME: ${{ inputs.identity_name }}
+      STORE_PUBLISHER: ${{ inputs.publisher }}
+      STORE_PUBLISHER_DISPLAY_NAME: ${{ inputs.publisher_display_name }}
+      STORE_DISPLAY_NAME: ${{ inputs.display_name }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate explicit package identity
+        run: node scripts/store.cjs --validate
+      - run: npm ci
+      - name: Rust toolchain (finite builds and tests only)
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - run: rustup default stable
+      - run: npm run check
+      - run: npm test
+      - name: Prepare pinned downloader
+        run: node scripts/prepare-windows.cjs
+      - name: Build executable without installer or app launch
+        run: npm run tauri -- build --target x86_64-pc-windows-msvc --no-bundle
+      - name: Create and statically verify unsigned MSIX
+        run: node scripts/store.cjs
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ClipDrop-Store-${{ inputs.test_identity && 'TEST-NO-SUBMIT' || 'UNSIGNED-SUBMISSION' }}
+          path: dist/store/*
+          if-no-files-found: error
+          retention-days: 14

@@ -50,6 +50,6 @@ La CI ejecuta pruebas, un roundtrip nativo con archivos sintéticos en su escrit
 
 Windows sigue sin Authenticode: iconos, hashes, Tauri y escaneos no eliminan SmartScreen ni garantizan aceptación por todos los antivirus. El aviso informal de la primera versión no se identificó. Una detección con nombre debe investigarse conservando archivo y hash; no se desactivan protecciones como solución.
 
-Store/MSIX permite firma gratuita después de certificación conservando el repositorio privado; no firma el EXE NSIS de GitHub. No se registró ni publicó ClipDrop en la Store. [Microsoft](https://learn.microsoft.com/en-us/windows/apps/publish/get-started).
+Store/MSIX permite firma gratuita después de certificación conservando el repositorio privado; no firma el EXE NSIS de GitHub. El empaquetado se prepara con `npm run build:store` y la identidad asignada por Partner Center. [Alta, configuración y validaciones pendientes](../desktop/store/README.md). No se registró ni publicó ClipDrop en la Store.
 
 Las releases usan los artefactos exactos de una CI aprobada y el mismo commit probado. El workflow de adjuntos valida commit, nombres y SHA256 antes de subirlos a un borrador.
