@@ -11,6 +11,14 @@ function createFileClipboard({ clipboard, ClipboardItem, platform = process.plat
   const windows = platform === 'win32';
   const paths = windows ? path.win32 : path.posix;
 
+  function isAbsoluteFilePath(file) {
+    if (typeof file !== 'string' || !paths.isAbsolute(file) || file.includes('\0')) return false;
+    // On Windows, isAbsolute also accepts a current-drive-relative path such as
+    // \\video.mp4. Require an explicit drive or complete UNC server/share before
+    // URL conversion, which otherwise may silently fill in the current drive.
+    return !windows || /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/]+[\\/][^\\/]+(?:[\\/]|$))/.test(file);
+  }
+
   function supported() {
     if (!clipboard || typeof ClipboardItem !== 'function' || typeof clipboard.write !== 'function' || typeof clipboard.read !== 'function') {
       throw new Error('Esta versión de ClipDrop no puede copiar archivos. Actualizá la aplicación y reintentá.');
@@ -23,7 +31,7 @@ function createFileClipboard({ clipboard, ClipboardItem, platform = process.plat
     const uris = [];
     // Validate every file before constructing or writing the single clipboard item.
     for (const file of files) {
-      if (typeof file !== 'string' || !paths.isAbsolute(file) || file.includes('\0')) {
+      if (!isAbsoluteFilePath(file)) {
         throw new Error('La ruta del archivo no es válida. Volvé a descargar el video.');
       }
       let stat;
@@ -32,9 +40,7 @@ function createFileClipboard({ clipboard, ClipboardItem, platform = process.plat
       if (!stat.isFile()) throw new Error('No se puede copiar una carpeta como video.');
       try {
         const uri = pathToFileURL(file, { windows });
-        // Reject incomplete Windows paths (for example \\video.mp4 without a
-        // drive or share), even though win32.isAbsolute considers them rooted.
-        if (uri.protocol !== 'file:' || !paths.isAbsolute(fileURLToPath(uri, { windows }))) throw new Error();
+        if (uri.protocol !== 'file:' || !isAbsoluteFilePath(fileURLToPath(uri, { windows }))) throw new Error();
         uris.push(uri.href);
       } catch { throw new Error('La ruta del archivo no es válida. Volvé a descargar el video.'); }
     }
@@ -73,7 +79,7 @@ function createFileClipboard({ clipboard, ClipboardItem, platform = process.plat
           if (uri.protocol !== 'file:' || uri.search || uri.hash) return null;
           file = fileURLToPath(uri, { windows });
         } catch { return null; }
-        if (!paths.isAbsolute(file) || file.includes('\0') || !isWithin(root, file)) return null;
+        if (!isAbsoluteFilePath(file) || !isWithin(root, file)) return null;
         files.push(file);
       }
       snapshot.push({ types: [...types].sort(), files });
@@ -83,7 +89,7 @@ function createFileClipboard({ clipboard, ClipboardItem, platform = process.plat
 
   async function clearIfWithin(root) {
     supported();
-    if (typeof root !== 'string' || !paths.isAbsolute(root) || root.includes('\0')) {
+    if (!isAbsoluteFilePath(root)) {
       throw new Error('La carpeta temporal no es válida.');
     }
     root = paths.resolve(root);

@@ -12,7 +12,7 @@
     "check": "node scripts/check.cjs",
     "prepare:windows": "node scripts/prepare-windows.cjs",
     "build:windows": "npm run build:icons && npm run prepare:windows && electron-builder --win zip --x64 --publish never",
-    "build:mac": "npm run build:icons && electron-builder --mac zip --publish never",
+    "build:mac": "npm run build:icons && electron-builder --mac zip --arm64 --publish never",
     "build:icons": "node scripts/build-icons.cjs",
     "verify:windows": "node scripts/verify-package.cjs",
     "checksums": "node scripts/checksums.cjs"

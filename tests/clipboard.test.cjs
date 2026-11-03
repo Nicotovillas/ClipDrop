@@ -38,7 +38,7 @@ function setup(options = {}, initial = []) {
   return { ...fake, service };
 }
 
-function fileItem(files, windows = false) {
+function fileItem(files, windows = process.platform === 'win32') {
   return new FakeClipboardItem({ [FILES_TYPE]: files.map(file => pathToFileURL(file, { windows }).href).join('\r\n') });
 }
 
@@ -173,5 +173,26 @@ test('Windows native paths use URI encoding and cleanup containment is case-inse
 test('Windows UNC file lists retain share boundaries', async () => {
   const { service, state } = setup({ platform: 'win32' }, [fileItem(['\\\\SERVER\\Share\\ClipDrop\\transfer-one\\video.mp4'], true)]);
   assert.equal(await service.clearIfWithin('\\\\server\\share\\clipdrop'), true);
+  assert.equal(state.clears, 1);
+});
+
+test('Windows paths without a drive/share are rejected before filesystem or clipboard access', async () => {
+  let statCalls = 0;
+  const { service, state } = setup({ platform: 'win32', fileSystem: { async stat() { statCalls++; return { isFile: () => true }; } } });
+  for (const invalid of ['\\video.mp4', '/video.mp4', 'C:video.mp4', '\\\\server']) {
+    await assert.rejects(service.copyFiles([invalid]), /ruta del archivo/);
+    await assert.rejects(service.clearIfWithin(invalid), /carpeta temporal/);
+  }
+  assert.equal(statCalls, 0);
+  assert.equal(state.writes.length, 0);
+  assert.equal(state.reads, 0);
+  assert.equal(state.clears, 0);
+});
+
+test('Explicit macOS fixtures use POSIX file URIs independently of the host OS', async () => {
+  const root = '/Users/nico/ClipDrop/transfers';
+  const files = ['/Users/nico/ClipDrop/transfers/transfer-one/Mañana 🎬.mp4'];
+  const { service, state } = setup({ platform: 'darwin' }, [fileItem(files, false)]);
+  assert.equal(await service.clearIfWithin(root), true);
   assert.equal(state.clears, 1);
 });
