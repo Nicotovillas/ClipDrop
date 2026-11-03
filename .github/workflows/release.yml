@@ -32,17 +32,30 @@ jobs:
           [[ "$RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test "$(gh run view "$RUN_ID" --json conclusion --jq .conclusion)" = success
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .path)" = .github/workflows/build.yml
           test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
           tested_sha=$(gh run view "$RUN_ID" --json headSha --jq .headSha)
           release_sha=$(gh release view "$RELEASE_TAG" --json targetCommitish --jq .targetCommitish)
           test "$tested_sha" = "$release_sha"
           gh run download "$RUN_ID" --dir artifacts
           mkdir release
+          version="${RELEASE_TAG#v}"
           for platform in Windows macOS; do
             folder="artifacts/ClipDrop-$platform"
-            (cd "$folder" && sha256sum --check SHA256SUMS-*.txt)
-            cp "$folder"/ClipDrop-*.zip release/
-            cat "$folder"/SHA256SUMS-*.txt >> "release/SHA256SUMS-${RELEASE_TAG#v}.txt"
+            if [ "$platform" = Windows ]; then
+              expected="ClipDrop-Setup-x64-$version.exe"
+            else
+              expected="ClipDrop-Mac-arm64-$version.zip"
+            fi
+            manifest="$folder/SHA256SUMS-$version.txt"
+            test "$(wc -l < "$manifest")" -eq 1
+            read -r digest filename extra < "$manifest"
+            [[ "$digest" =~ ^[a-f0-9]{64}$ ]]
+            test "$filename" = "$expected"
+            test -z "${extra:-}"
+            (cd "$folder" && sha256sum --strict --check "SHA256SUMS-$version.txt")
+            cp "$folder/$expected" release/
+            cat "$manifest" >> "release/SHA256SUMS-$version.txt"
           done
           cp artifacts/ClipDrop-Windows/defender-report.json release/
           gh release upload "$RELEASE_TAG" release/* --clobber

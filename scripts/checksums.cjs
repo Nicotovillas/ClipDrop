@@ -4,8 +4,12 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const directory = path.resolve(__dirname, '..', 'dist');
 const version = require('../package.json').version;
-const archives = fs.readdirSync(directory).filter(name => name.endsWith(`-${version}.zip`) && name.startsWith('ClipDrop-')).sort();
-if (!archives.length) throw new Error('No hay paquetes de esta versión para verificar.');
-const lines = archives.map(name => `${createHash('sha256').update(fs.readFileSync(path.join(directory, name))).digest('hex')}  ${name}`);
+const names = [`ClipDrop-Setup-x64-${version}.exe`, `ClipDrop-Mac-arm64-${version}.zip`];
+const packages = names.filter(name => fs.existsSync(path.join(directory, name)));
+const required = process.platform === 'win32' ? names[0] : process.platform === 'darwin' ? names[1] : null;
+if (!packages.length || (required && !packages.includes(required))) {
+  throw new Error('Falta el paquete de esta versión para la plataforma actual.');
+}
+const lines = packages.sort().map(name => `${createHash('sha256').update(fs.readFileSync(path.join(directory, name))).digest('hex')}  ${name}`);
 fs.writeFileSync(path.join(directory, `SHA256SUMS-${version}.txt`), lines.join('\n') + '\n');
 console.log(lines.join('\n'));

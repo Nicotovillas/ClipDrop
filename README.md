@@ -6,12 +6,12 @@ Una app de escritorio pequeña para descargar videos con yt-dlp. Windows es la p
 
 ## Usar
 
-1. Extraer **todo el ZIP** de tu plataforma.
-2. Windows: abrir `ClipDrop.exe`. Mac: abrir `ClipDrop.app`.
+1. En [GitHub Releases](https://github.com/Nicotovillas/ClipDrop/releases/latest), descargar **`ClipDrop-Setup-x64-0.2.1.exe`** para Windows. Ejecutarlo para instalar ClipDrop en tu usuario, sin permisos de administrador.
+2. Abrir **ClipDrop** desde el menú Inicio. En Mac, descargar y extraer el ZIP y abrir `ClipDrop.app`.
 3. En **Config**, elegir la carpeta de descarga; queda guardada.
 4. En **Descarga**, pegar el enlace y elegir **Descargar** o **Copiar video**.
 
-El ZIP Windows incluye el motor oficial yt-dlp; no requiere instalar Python, Node ni yt-dlp. No mover únicamente el EXE: necesita los archivos de su carpeta. En Mac se usa el motor instalado con `brew install yt-dlp ffmpeg`.
+El instalador Windows incluye la app y el motor oficial yt-dlp; no requiere instalar Python, Node ni yt-dlp, ni extraer carpetas manualmente. La instalación no abre la app automáticamente ni crea un acceso directo en el escritorio. Las preferencias se guardan en los datos de tu usuario y se conservan al actualizar o desinstalar; tus descargas guardadas se mantienen. En Mac se usa el motor instalado con `brew install yt-dlp ffmpeg`.
 
 Copiar video guarda un archivo **temporal** y coloca su referencia nativa en el portapapeles. Ocupa espacio hasta eliminarlo desde **Config → Temporales**. Los temporales sobreviven al cierre para poder pegarlos después. Discord, WhatsApp u otra app deben aceptar archivos pegados; también puede abrirse la carpeta y arrastrar el video.
 
@@ -23,7 +23,7 @@ Los paquetes incluyen versión, nombre e icono propios, motor oficial fijado por
 
 ## Desarrollo
 
-Electron 45, HTML/CSS/JavaScript y yt-dlp externo. Node 22 o posterior para desarrollar:
+Electron 45, HTML/CSS/JavaScript y yt-dlp (incluido en Windows, externo en Mac). Node 22 o posterior para desarrollar:
 
 ```sh
 npm ci
@@ -48,7 +48,7 @@ npm run checksums
 
 El icono se genera desde `assets/icon.svg`; los formatos PNG, ICO e ICNS están incluidos. El motor Windows está fijado en `tools/yt-dlp.json`; su SHA256 debe coincidir con el publicado por el proyecto oficial. Para actualizarlo, revisar y cambiar esa versión y su hash antes de compilar. Los binarios descargados y `dist/` quedan fuera de Git.
 
-La CI compila en Windows y Mac, corre pruebas de motor/interfaz/almacenamiento y un roundtrip nativo de archivos del portapapeles sin abrir ventanas. En Windows registra si Defender pudo escanear el paquete. Los artefactos se conservan en GitHub Actions; los paquetes de una versión se adjuntan a su release.
+La CI compila en Windows y Mac, corre pruebas de motor/interfaz/almacenamiento y un roundtrip nativo de archivos del portapapeles sin abrir ventanas. En Windows registra por separado si Defender pudo escanear la carpeta de la app y el instalador NSIS. Los artefactos se conservan en GitHub Actions; el instalador Windows y el ZIP Mac de una versión se adjuntan a su release tras validar sus hashes y el commit probado. El instalador no se ejecuta durante estos controles.
 
 ## Verificaciones
 

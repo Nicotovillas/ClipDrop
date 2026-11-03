@@ -38,10 +38,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $info = (Get-Item dist/win-unpacked/ClipDrop.exe).VersionInfo
-          if ($info.ProductName -ne 'ClipDrop') { throw 'Missing ClipDrop product metadata.' }
-          Write-Host "Product: $($info.ProductName); Version: $($info.ProductVersion)"
-          Write-Host "Authenticode: $((Get-AuthenticodeSignature dist/win-unpacked/ClipDrop.exe).Status)"
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          foreach ($file in @('dist/win-unpacked/ClipDrop.exe', "dist/ClipDrop-Setup-x64-$version.exe")) {
+            $info = (Get-Item $file).VersionInfo
+            if ($info.ProductName -ne 'ClipDrop') { throw "Missing ClipDrop product metadata: $file" }
+            if ($info.ProductVersion -ne $version) { throw "Unexpected product version: $file" }
+            Write-Host "$file — Product: $($info.ProductName); Version: $($info.ProductVersion)"
+            Write-Host "Authenticode: $((Get-AuthenticodeSignature $file).Status)"
+          }
       - name: Defender scan when available
         if: runner.os == 'Windows'
         shell: pwsh
@@ -51,7 +55,8 @@ jobs:
         with:
           name: ClipDrop-${{ runner.os }}
           path: |
-            dist/ClipDrop-*.zip
+            dist/ClipDrop-Setup-*.exe
+            dist/ClipDrop-Mac-*.zip
             dist/SHA256SUMS-*.txt
             dist/defender-report.json
           if-no-files-found: error
