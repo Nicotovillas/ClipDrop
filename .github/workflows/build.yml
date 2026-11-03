@@ -42,7 +42,7 @@ jobs:
           foreach ($file in @('dist/win-unpacked/ClipDrop.exe', "dist/ClipDrop-Setup-x64-$version.exe")) {
             $info = (Get-Item $file).VersionInfo
             if ($info.ProductName -ne 'ClipDrop') { throw "Missing ClipDrop product metadata: $file" }
-            if ($info.ProductVersion -ne $version) { throw "Unexpected product version: $file" }
+            if ($info.ProductVersion -notin @($version, "$version.0")) { throw "Unexpected product version: $file ($($info.ProductVersion))" }
             Write-Host "$file — Product: $($info.ProductName); Version: $($info.ProductVersion)"
             Write-Host "Authenticode: $((Get-AuthenticodeSignature $file).Status)"
           }
