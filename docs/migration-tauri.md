@@ -39,3 +39,9 @@ El ZIP Mac previo medido localmente ocupa 117.066.162 bytes; el Tauri ronda 2,6 
 El instalador Tauri no migra/desinstala automáticamente el registro del instalador Electron; puede aparecer una instalación anterior separada. Las preferencias se reutilizan y la desinstalación no debe borrar descargas guardadas.
 
 La [nota de portapapeles](clipboard-tauri.md) documenta las APIs, tests y el límite de atomicidad de limpieza en NSPasteboard.
+
+## Primera ejecución remota autorizada
+
+En una tarea posterior se autorizó subir la migración al repo privado y correr CI, sin abrir la app ni publicar release. El commit `2b1a2c391b2db1878a8b4bf707845290d4deba67` disparó [CI 41707672169](https://github.com/Nicotovillas/ClipDrop/actions/runs/41707672169): Mac terminó correctamente; Windows pasó check MSVC, 26 pruebas y el roundtrip CF_HDROP nativo, y generó NSIS. Falló después la comparación estática del ejecutable extraído.
+
+La causa está documentada en [tauri-bundler 2.12.4](https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.12.4/crates/tauri-bundler/src/bundle.rs): sustituye el primer `__TAURI_BUNDLE_TYPE_VAR_UNK` por `__TAURI_BUNDLE_TYPE_VAR_NSS` antes de empaquetar y restaura el binario sin modificar al terminar. El verificador ahora reproduce sólo esa sustitución y compara SHA256 del archivo completo. La carpeta preparada para Defender debe coincidir exactamente con el payload extraído. Se agregaron tres pruebas de regresión, incluidos cambios ajenos al marcador que deben rechazarse. No se ejecutó el instalador.

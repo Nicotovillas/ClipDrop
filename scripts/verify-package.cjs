@@ -6,6 +6,7 @@ const os = require('node:os');
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
+const { nsisPayload } = require('./windows-payload.cjs');
 const root = path.resolve(__dirname, '..');
 const version = require('../package.json').version;
 const pinned = require('../tools/yt-dlp.json');
@@ -32,7 +33,11 @@ try {
   const engine = extracted.find(file => path.basename(file).toLowerCase() === 'yt-dlp.exe');
   assert.ok(app, 'Falta ClipDrop.exe en el instalador.');
   assert.ok(engine, 'Falta yt-dlp.exe en el instalador.');
-  assert.deepEqual(verifyPE(app), verifyPE(path.join(root, 'target', 'x86_64-pc-windows-msvc', 'release', 'clipdrop.exe')), 'El instalador no contiene la app de este build.');
+  const packagedApp = verifyPE(app);
+  const expectedApp = nsisPayload(verifyPE(path.join(root, 'target', 'x86_64-pc-windows-msvc', 'release', 'clipdrop.exe')));
+  const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+  assert.equal(sha256(packagedApp), sha256(expectedApp), 'El instalador no contiene la app de este build con el marcador NSIS de Tauri.');
+  assert.equal(sha256(verifyPE(path.join(root, 'dist', 'win-unpacked', 'ClipDrop.exe'))), sha256(packagedApp), 'La app preparada para Defender difiere del payload instalado.');
   const binary = verifyPE(engine);
   assert.equal(createHash('sha256').update(binary).digest('hex'), pinned.sha256, 'SHA256 del motor incorrecto.');
   const provenancePath = extracted.find(file => path.basename(file) === 'provenance.json');
@@ -42,5 +47,5 @@ try {
   assert.equal(provenance.sha256, pinned.sha256);
   assert.ok(extracted.some(file => path.basename(file) === 'yt-dlp-THIRD_PARTY_LICENSES.txt'));
   assert.ok(!extracted.some(file => /^(electron\.exe|app\.asar|node\.exe|\.env)$/i.test(path.basename(file))));
-  console.log(`Instalador NSIS Tauri ${version}: payload x64 coincide con el build, motor SHA256/licencias correctos (sin ejecutarlo).`);
+  console.log(`Instalador NSIS Tauri ${version}: payload x64 coincide con el build (marcador NSIS), staging Defender idéntico, motor SHA256/licencias correctos (sin ejecutarlo).`);
 } finally { fs.rmSync(temporary, { recursive: true, force: true }); }

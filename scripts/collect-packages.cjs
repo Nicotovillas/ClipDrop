@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { nsisPayload } = require('./windows-payload.cjs');
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 const version = require('../package.json').version;
@@ -14,7 +15,7 @@ if (process.platform === 'win32') {
   const unpacked = path.join(dist, 'win-unpacked');
   fs.rmSync(unpacked, { recursive: true, force: true });
   fs.mkdirSync(unpacked, { recursive: true });
-  fs.copyFileSync(path.join(release, 'clipdrop.exe'), path.join(unpacked, 'ClipDrop.exe'));
+  fs.writeFileSync(path.join(unpacked, 'ClipDrop.exe'), nsisPayload(fs.readFileSync(path.join(release, 'clipdrop.exe'))));
   fs.cpSync(path.join(root, 'tools', 'win32'), path.join(unpacked, 'tools'), { recursive: true });
 } else if (process.platform === 'darwin') {
   const bundle = path.join(root, 'target', 'aarch64-apple-darwin', 'release', 'bundle', 'macos', 'ClipDrop.app');
