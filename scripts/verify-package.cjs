@@ -17,7 +17,7 @@ function verifyPE(filename) {
 }
 function verifySources(directory) {
   for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
-    const relative = path.posix.join(directory, entry.name);
+    const relative = path.join(directory, entry.name);
     if (entry.isDirectory()) verifySources(relative);
     else {
       assert.deepEqual(asar.extractFile(archive, relative), fs.readFileSync(path.join(root, relative)), `${relative} empaquetado desactualizado.`);
@@ -33,6 +33,6 @@ const binary = fs.readFileSync(path.join(resources, 'tools', 'yt-dlp.exe'));
 assert.equal(createHash('sha256').update(binary).digest('hex'), provenance.sha256);
 assert.ok(fs.existsSync(path.join(resources, 'tools', 'yt-dlp-THIRD_PARTY_LICENSES.txt')));
 assert.ok(fs.existsSync(path.join(root, 'dist', 'win-unpacked', 'LICENSES.chromium.html')));
-assert.ok(!asar.listPackage(archive).some(file => /node_modules|\.env|preferences\.json|test\.cjs|\.ps1$|src\/native/.test(file)));
-assert.equal(asar.extractFile(archive, 'src/clipboard.cjs').includes(Buffer.from('execFile')), false);
+assert.ok(!asar.listPackage(archive).some(file => /node_modules|\.env|preferences\.json|test\.cjs|\.ps1$|src\/native/.test(file.replaceAll('\\', '/'))));
+assert.equal(asar.extractFile(archive, path.join('src', 'clipboard.cjs')).includes(Buffer.from('execFile')), false);
 console.log(`Paquete Windows x64 verificado: fuente e iconos exactos, sin scripts auxiliares, motor ${provenance.release}, SHA256 y licencias.`);
