@@ -2,11 +2,11 @@
 dist/
 .DS_Store
 node_modules/
-src/back/resources/win32/*
-!src/back/resources/win32/.gitkeep
+desktop/resources/win32/*
+!desktop/resources/win32/.gitkeep
 /target/
-/src/back/target/
-/src/back/gen/
+/desktop/target/
+/desktop/gen/
 .env
 .env.*
 *.p12

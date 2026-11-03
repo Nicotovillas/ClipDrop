@@ -3,6 +3,7 @@ use crate::{
     engine::{download as run_engine, find_executable},
     state::{AppState, Request},
 };
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Emitter, Manager, State, WebviewWindow};
@@ -38,11 +39,14 @@ fn reply(result: Result<Value, String>) -> Value {
     }
 }
 
-async fn blocking(work: impl FnOnce() -> Result<Value, String> + Send + 'static) -> Value {
+async fn blocking<T: Serialize + Send + 'static>(
+    work: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Value {
     reply(
         tauri::async_runtime::spawn_blocking(work)
             .await
-            .unwrap_or_else(|e| Err(e.to_string())),
+            .unwrap_or_else(|e| Err(e.to_string()))
+            .and_then(|value| serde_json::to_value(value).map_err(|e| e.to_string())),
     )
 }
 
@@ -78,11 +82,12 @@ pub(crate) async fn info(window: WebviewWindow, app: tauri::AppHandle) -> Value 
     }
     let state = app.state::<Shared>().inner().clone();
     blocking(move || {
+        let snapshot = state.snapshot()?;
         Ok(json!({
-            "destination": state.lock()?.destination,
+            "destination": snapshot.destination,
             "available": yt_dlp(&app).is_some(),
             "platform": if cfg!(target_os="macos") { "darwin" } else { "win32" },
-            "temporaryBytes": state.storage.bytes()?, "ffmpeg": find_executable("ffmpeg").is_some()
+            "temporaryBytes": snapshot.temporary_bytes, "ffmpeg": find_executable("ffmpeg").is_some()
         }))
     })
     .await
@@ -104,7 +109,7 @@ pub(crate) async fn choose_folder(window: WebviewWindow, app: tauri::AppHandle) 
     let state = app.state::<Shared>().inner().clone();
     blocking(move || {
         let _operation = state.begin(false)?;
-        let destination = state.lock()?.destination.clone();
+        let destination = state.destination()?;
         let choice = app
             .dialog()
             .file()
@@ -176,8 +181,7 @@ pub(crate) async fn copy_result(window: WebviewWindow, app: tauri::AppHandle) ->
     let state = app.state::<Shared>().inner().clone();
     blocking(move || {
         let _operation = state.begin(false)?;
-        let files = state.lock()?.files.clone();
-        clipboard::copy_files(&files)?;
+        state.copy_result(clipboard::copy_files)?;
         Ok(json!({}))
     })
     .await
@@ -191,15 +195,7 @@ pub(crate) async fn reveal_result(window: WebviewWindow, app: tauri::AppHandle) 
     let state = app.state::<Shared>().inner().clone();
     blocking(move || {
         let _operation = state.begin(false)?;
-        let file = state
-            .lock()?
-            .files
-            .first()
-            .cloned()
-            .ok_or("No hay archivos para mostrar.")?;
-        if !file.is_file() {
-            return Err("El archivo ya no está disponible.".into());
-        }
+        let file = state.result_to_reveal()?;
         app.opener()
             .reveal_item_in_dir(file)
             .map_err(|e| e.to_string())?;
@@ -220,11 +216,7 @@ pub(crate) async fn clean_temporary(window: WebviewWindow, app: tauri::AppHandle
             .title("Limpiar temporales").parent(&window)
             .buttons(MessageDialogButtons::OkCancelCustom("Limpiar".into(), "Cancelar".into())).blocking_show();
         if !answer { return Ok(json!({"cancelled": true})); }
-        clipboard::clear_if_within(state.storage.root())?;
-        state.storage.clean()?;
-        let mut session = state.lock()?;
-        session.files.retain(|file| !state.storage.contains(file));
-        Ok(json!({"temporaryBytes": state.storage.bytes()?, "hasFiles": !session.files.is_empty()}))
+        Ok(json!(state.clean_temporary(|root| clipboard::clear_if_within(root).map(|_| ()))?))
     }).await
 }
 

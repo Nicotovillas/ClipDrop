@@ -52,10 +52,7 @@ pub fn run() {
 }
 
 fn busy(app: &tauri::AppHandle) -> bool {
-    app.state::<Arc<AppState>>()
-        .lock()
-        .map(|state| state.busy)
-        .unwrap_or(true)
+    app.state::<Arc<AppState>>().is_busy()
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {

@@ -2,10 +2,10 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const sharp = require('sharp');
-const directory = path.resolve(__dirname, '..', 'src', 'back', 'icons');
+const { ui, icons: directory } = require('./paths.cjs');
 
 async function build() {
-  const svg = await fs.readFile(path.resolve(__dirname, '..', 'src', 'front', 'icon.svg'));
+  const svg = await fs.readFile(path.join(ui, 'icon.svg'));
   const sizes = [16, 32, 48, 64, 128, 256, 512, 1024];
   const pngs = new Map(await Promise.all(sizes.map(async size => [size, await sharp(svg).resize(size, size).png().toBuffer()])));
   await fs.writeFile(path.join(directory, 'icon.png'), pngs.get(512));
@@ -38,6 +38,6 @@ async function build() {
   icns.write('icns', 0, 'ascii');
   icns.writeUInt32BE(8 + chunks.reduce((sum, chunk) => sum + chunk.length, 0), 4);
   await fs.writeFile(path.join(directory, 'icon.icns'), Buffer.concat([icns, ...chunks]));
-  console.log('Iconos PNG, ICO e ICNS generados desde src/front/icon.svg.');
+  console.log('Iconos PNG, ICO e ICNS generados desde ui/icon.svg.');
 }
 build().catch(error => { console.error(error); process.exitCode = 1; });

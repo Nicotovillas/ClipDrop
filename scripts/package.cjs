@@ -5,21 +5,21 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { nsisPayload } = require('./windows.cjs');
 const { createHash } = require('node:crypto');
-const root = path.resolve(__dirname, '..');
+const { root, resources, releaseDirectory } = require('./paths.cjs');
 const dist = path.join(root, 'dist');
 const version = require('../package.json').version;
 fs.mkdirSync(dist, { recursive: true });
 if (process.platform === 'win32') {
-  const release = path.join(root, 'src', 'back', 'target', 'x86_64-pc-windows-msvc', 'release');
+  const release = releaseDirectory('x86_64-pc-windows-msvc');
   const installer = path.join(release, 'bundle', 'nsis', `ClipDrop_${version}_x64-setup.exe`);
   fs.copyFileSync(installer, path.join(dist, `ClipDrop-Setup-x64-${version}.exe`));
   const unpacked = path.join(dist, 'win-unpacked');
   fs.rmSync(unpacked, { recursive: true, force: true });
   fs.mkdirSync(unpacked, { recursive: true });
   fs.writeFileSync(path.join(unpacked, 'ClipDrop.exe'), nsisPayload(fs.readFileSync(path.join(release, 'clipdrop.exe'))));
-  fs.cpSync(path.join(root, 'src', 'back', 'resources', 'win32'), path.join(unpacked, 'tools'), { recursive: true });
+  fs.cpSync(path.join(resources, 'win32'), path.join(unpacked, 'tools'), { recursive: true });
 } else if (process.platform === 'darwin') {
-  const bundle = path.join(root, 'src', 'back', 'target', 'aarch64-apple-darwin', 'release', 'bundle', 'macos', 'ClipDrop.app');
+  const bundle = path.join(releaseDirectory('aarch64-apple-darwin'), 'bundle', 'macos', 'ClipDrop.app');
   // Local ad hoc signing seals the bundle/resources; it does not grant Apple
   // Developer ID trust or notarization and never contacts a signing service.
   execFileSync('/usr/bin/codesign', ['--force', '--sign', '-', bundle], { stdio: 'inherit' });

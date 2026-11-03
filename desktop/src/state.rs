@@ -2,7 +2,7 @@ use crate::{
     engine::{Cancellation, DownloadRequest, CANCELLED},
     storage::TemporaryStorage,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
     fs,
@@ -10,30 +10,83 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-pub struct Session {
-    pub destination: PathBuf,
-    pub files: Vec<PathBuf>,
-    pub busy: bool,
-    pub cancellation: Option<Cancellation>,
+struct Session {
+    destination: PathBuf,
+    files: Vec<PathBuf>,
+    busy: bool,
+    cancellation: Option<Cancellation>,
 }
 
 pub struct AppState {
-    pub session: Mutex<Session>,
-    pub storage: TemporaryStorage,
+    session: Mutex<Session>,
+    storage: TemporaryStorage,
     preferences: PathBuf,
 }
 
 #[derive(Deserialize)]
 pub struct Request {
     pub url: String,
-    pub mode: String,
+    pub mode: TransferMode,
     pub destination: Option<PathBuf>,
     pub browser: Option<String>,
 }
 
+#[derive(Deserialize, PartialEq)]
+#[serde(try_from = "String")]
+pub enum TransferMode {
+    Save,
+    Copy,
+}
+
+impl TryFrom<String> for TransferMode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "save" => Ok(Self::Save),
+            "copy" => Ok(Self::Copy),
+            _ => Err("Ingresá el enlace del video.".into()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct TransferredFile {
+    name: String,
+    path: PathBuf,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged, rename_all_fields = "camelCase")]
+pub enum TransferOutcome {
+    Completed {
+        files: Vec<TransferredFile>,
+        copied: bool,
+        temporary_bytes: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        warning: Option<String>,
+    },
+    Cancelled {
+        cancelled: bool,
+        temporary_bytes: u64,
+    },
+}
+
+pub struct Snapshot {
+    pub destination: PathBuf,
+    pub temporary_bytes: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupOutcome {
+    temporary_bytes: u64,
+    has_files: bool,
+}
+
 // Holds the operation lock across dialogs, downloads, clipboard IO and cleanup.
 // Cancellation uses a separate flag and remains available while the lock is held.
-pub struct Operation(pub Arc<AppState>);
+pub struct Operation(Arc<AppState>);
 impl Drop for Operation {
     fn drop(&mut self) {
         if let Ok(mut session) = self.0.session.lock() {
@@ -67,10 +120,60 @@ impl AppState {
         })
     }
 
-    pub fn lock(&self) -> Result<MutexGuard<'_, Session>, String> {
+    fn lock(&self) -> Result<MutexGuard<'_, Session>, String> {
         self.session
             .lock()
             .map_err(|_| "No se pudo acceder al estado de ClipDrop.".into())
+    }
+
+    pub fn destination(&self) -> Result<PathBuf, String> {
+        Ok(self.lock()?.destination.clone())
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.lock().map(|session| session.busy).unwrap_or(true)
+    }
+
+    pub fn snapshot(&self) -> Result<Snapshot, String> {
+        Ok(Snapshot {
+            destination: self.destination()?,
+            temporary_bytes: self.storage.bytes()?,
+        })
+    }
+
+    pub fn copy_result(
+        &self,
+        copy: impl FnOnce(&[PathBuf]) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let files = self.lock()?.files.clone();
+        copy(&files)
+    }
+
+    pub fn result_to_reveal(&self) -> Result<PathBuf, String> {
+        let file = self
+            .lock()?
+            .files
+            .first()
+            .cloned()
+            .ok_or("No hay archivos para mostrar.")?;
+        if !file.is_file() {
+            return Err("El archivo ya no está disponible.".into());
+        }
+        Ok(file)
+    }
+
+    pub fn clean_temporary(
+        &self,
+        clear_clipboard: impl FnOnce(&Path) -> Result<(), String>,
+    ) -> Result<CleanupOutcome, String> {
+        clear_clipboard(self.storage.root())?;
+        self.storage.clean()?;
+        let mut session = self.lock()?;
+        session.files.retain(|file| !self.storage.contains(file));
+        Ok(CleanupOutcome {
+            temporary_bytes: self.storage.bytes()?,
+            has_files: !session.files.is_empty(),
+        })
     }
 
     pub fn begin(self: &Arc<Self>, download: bool) -> Result<Operation, String> {
@@ -129,8 +232,8 @@ impl AppState {
         ffmpeg: Option<&Path>,
         run: impl FnOnce(&DownloadRequest, &Cancellation) -> Result<Vec<PathBuf>, String>,
         copy: impl FnOnce(&[PathBuf]) -> Result<(), String>,
-    ) -> Result<Value, String> {
-        if !["save", "copy"].contains(&request.mode.as_str()) || request.url.len() > 8192 {
+    ) -> Result<TransferOutcome, String> {
+        if request.url.len() > 8192 {
             return Err("Ingresá el enlace del video.".into());
         }
         let flag = self
@@ -138,7 +241,7 @@ impl AppState {
             .cancellation
             .clone()
             .ok_or("No hay una descarga en curso.")?;
-        let is_copy = request.mode == "copy";
+        let is_copy = request.mode == TransferMode::Copy;
         let target = if is_copy {
             self.storage.create()?
         } else {
@@ -176,19 +279,23 @@ impl AppState {
             let temporary_bytes = self.storage.bytes()?;
             self.lock()?.files = files.clone();
             let warning = if is_copy { copy(&files).err() } else { None };
-            let listed: Vec<Value> = files
-                .iter()
-                .map(|path| {
-                    json!({
-                        "name": path.file_name().unwrap_or_default().to_string_lossy(), "path": path
-                    })
+            let listed = files
+                .into_iter()
+                .map(|path| TransferredFile {
+                    name: path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned(),
+                    path,
                 })
                 .collect();
-            let mut result = json!({"files": listed, "copied": is_copy && warning.is_none(), "temporaryBytes": temporary_bytes});
-            if let Some(message) = warning {
-                result["warning"] = json!(message);
-            }
-            Ok(result)
+            Ok(TransferOutcome::Completed {
+                files: listed,
+                copied: is_copy && warning.is_none(),
+                temporary_bytes,
+                warning,
+            })
         })();
         if outcome.is_err() && is_copy {
             let _ = self.storage.remove_job(&target);
@@ -196,7 +303,10 @@ impl AppState {
         if outcome.is_err()
             && (flag.is_cancelled() || outcome.as_ref().is_err_and(|e| e == CANCELLED))
         {
-            return Ok(json!({"cancelled": true, "temporaryBytes": self.storage.bytes()?}));
+            return Ok(TransferOutcome::Cancelled {
+                cancelled: true,
+                temporary_bytes: self.storage.bytes()?,
+            });
         }
         outcome
     }
@@ -221,7 +331,7 @@ mod tests {
     fn request(service: &AppState, mode: &str) -> Request {
         Request {
             url: "https://x.com/test/status/123".into(),
-            mode: mode.into(),
+            mode: mode.to_owned().try_into().unwrap(),
             destination: Some(service.lock().unwrap().destination.clone()),
             browser: None,
         }
@@ -234,9 +344,10 @@ mod tests {
     }
     fn transfer(service: &Arc<AppState>, mode: &str) -> Value {
         let _operation = service.begin(true).unwrap();
-        service
+        let outcome = service
             .transfer(request(service, mode), None, fake, |_| Ok(()))
-            .unwrap()
+            .unwrap();
+        serde_json::to_value(outcome).unwrap()
     }
 
     #[test]
@@ -248,7 +359,30 @@ mod tests {
         assert_eq!(copied["copied"], true);
         let saved_file = PathBuf::from(saved["files"][0]["path"].as_str().unwrap());
         let copied_file = PathBuf::from(copied["files"][0]["path"].as_str().unwrap());
-        service.storage.clean().unwrap();
+        assert_eq!(
+            saved,
+            json!({
+                "files": [{"name": "Video ñ.mp4", "path": saved_file}],
+                "copied": false,
+                "temporaryBytes": 0
+            })
+        );
+        let cleaned = service
+            .clean_temporary(|_| {
+                assert!(
+                    copied_file.is_file(),
+                    "clear clipboard before deleting its file"
+                );
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(cleaned).unwrap(),
+            json!({
+                "temporaryBytes": 0,
+                "hasFiles": false
+            })
+        );
         assert!(saved_file.is_file());
         assert!(!copied_file.exists());
         let reopened = AppState::new(
@@ -278,11 +412,12 @@ mod tests {
     fn clipboard_failure_keeps_temporary_file_for_retry() {
         let (_root, service) = fixture();
         let _operation = service.begin(true).unwrap();
-        let result = service
+        let outcome = service
             .transfer(request(&service, "copy"), None, fake, |_| {
                 Err("Clipboard ocupado (fixture)".into())
             })
             .unwrap();
+        let result = serde_json::to_value(outcome).unwrap();
         assert_eq!(result["copied"], false);
         assert!(result["warning"].as_str().unwrap().contains("ocupado"));
         assert!(service.lock().unwrap().files[0].is_file());
@@ -294,7 +429,7 @@ mod tests {
         let (_root, service) = fixture();
         let operation = service.begin(true).unwrap();
         service.cancel().unwrap();
-        let result = service
+        let outcome = service
             .transfer(
                 request(&service, "copy"),
                 None,
@@ -302,12 +437,72 @@ mod tests {
                 |_| panic!("must not copy"),
             )
             .unwrap();
+        let result = serde_json::to_value(outcome).unwrap();
         assert_eq!(result["cancelled"], true);
+        assert_eq!(result, json!({"cancelled": true, "temporaryBytes": 0}));
         assert_eq!(service.storage.bytes().unwrap(), 0);
         assert_eq!(fs::read_dir(service.storage.root()).unwrap().count(), 0);
         assert!(service.begin(false).is_err());
         drop(operation);
         assert!(service.begin(false).is_ok());
+    }
+
+    #[test]
+    fn cleanup_keeps_saved_result_available_for_copy_and_reveal() {
+        let (_root, service) = fixture();
+        let copied = transfer(&service, "copy");
+        let saved = transfer(&service, "save");
+        let copied_file = PathBuf::from(copied["files"][0]["path"].as_str().unwrap());
+        let saved_file = PathBuf::from(saved["files"][0]["path"].as_str().unwrap());
+        let _operation = service.begin(false).unwrap();
+        let cleaned = service.clean_temporary(|_| Ok(())).unwrap();
+        assert!(cleaned.has_files);
+        assert!(!copied_file.exists());
+        service
+            .copy_result(|files| {
+                assert_eq!(files, &[saved_file.clone()]);
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(service.result_to_reveal().unwrap(), saved_file);
+        fs::remove_file(&saved_file).unwrap();
+        assert_eq!(
+            service.result_to_reveal().unwrap_err(),
+            "El archivo ya no está disponible."
+        );
+    }
+
+    #[test]
+    fn cleanup_failure_preserves_temporary_files_and_result() {
+        let (_root, service) = fixture();
+        let copied = transfer(&service, "copy");
+        let copied_file = PathBuf::from(copied["files"][0]["path"].as_str().unwrap());
+        let _operation = service.begin(false).unwrap();
+        assert!(service
+            .clean_temporary(|_| Err("clipboard ocupado (fixture)".into()))
+            .is_err());
+        assert!(copied_file.is_file());
+        assert_eq!(service.result_to_reveal().unwrap(), copied_file);
+    }
+
+    #[test]
+    fn request_modes_are_validated_at_the_ipc_boundary() {
+        for mode in ["save", "copy"] {
+            let request: Request = serde_json::from_value(json!({
+                "url": "https://example.com/video", "mode": mode
+            }))
+            .unwrap();
+            assert!(matches!(
+                request.mode,
+                TransferMode::Save | TransferMode::Copy
+            ));
+        }
+        let error = serde_json::from_value::<Request>(json!({
+            "url": "https://example.com/video", "mode": "delete"
+        }))
+        .err()
+        .unwrap();
+        assert!(error.to_string().contains("Ingresá el enlace del video."));
     }
 
     #[test]

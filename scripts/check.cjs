@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const root = path.resolve(__dirname, '..');
+const { root, ui } = require('./paths.cjs');
 function inspect(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const filename = path.join(directory, entry.name);
@@ -13,6 +13,6 @@ function inspect(directory) {
     }
   }
 }
-inspect(path.join(root, 'src', 'front'));
+inspect(ui);
 inspect(path.join(root, 'scripts'));
 if (!process.exitCode) console.log('Sintaxis de todos los archivos JavaScript correcta.');

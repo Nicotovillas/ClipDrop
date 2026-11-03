@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(require('node:path').join(__dirname, '../../src/front/bridge.js'), 'utf8');
+const source = fs.readFileSync(require('node:path').join(__dirname, '../../ui/bridge.js'), 'utf8');
 function fixture(invoke = async () => ({ ok: true })) {
   let subscribe;
   let subscribed;

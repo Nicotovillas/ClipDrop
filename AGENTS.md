@@ -1,6 +1,6 @@
 # ClipDrop
 
-Aplicación de escritorio con Tauri 2 y yt-dlp. Windows es la plataforma principal; Mac Apple Silicon es secundaria. Interfaz HTML/CSS/JavaScript y backend Rust; no usar Python para la GUI.
+Aplicación de escritorio con Tauri 2 y yt-dlp. Windows es la plataforma principal; Mac Apple Silicon es secundaria. Interfaz HTML/CSS/JavaScript en `ui/` y un único paquete Rust/Tauri en `desktop/`; no usar Python para la GUI.
 
 - Conservar la interfaz compacta de 560×300 y las pestañas Descarga/Config.
 - Al copiar un video, indicar que usa almacenamiento temporal y depende de que la aplicación receptora acepte archivos.

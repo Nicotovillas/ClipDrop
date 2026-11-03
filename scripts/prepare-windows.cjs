@@ -3,8 +3,9 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
-const directory = path.resolve(__dirname, '..', 'src', 'back', 'resources', 'win32');
-const pinned = require('../src/back/resources/yt-dlp.json');
+const { resources } = require('./paths.cjs');
+const directory = path.join(resources, 'win32');
+const pinned = require(path.join(resources, 'yt-dlp.json'));
 const headers = { 'User-Agent': 'ClipDrop-local-build' };
 
 async function get(url) {
@@ -25,7 +26,7 @@ async function prepare() {
   const match = sums.match(/^([a-fA-F0-9]{64})\s+\*?yt-dlp\.exe\s*$/m);
   if (!match) throw new Error('No se encontró el SHA256 oficial de yt-dlp.exe.');
   const expected = match[1].toLowerCase();
-  if (expected !== pinned.sha256) throw new Error('El SHA256 publicado no coincide con src/back/resources/yt-dlp.json.');
+  if (expected !== pinned.sha256) throw new Error('El SHA256 publicado no coincide con desktop/resources/yt-dlp.json.');
   await fs.mkdir(directory, { recursive: true });
   const filename = path.join(directory, 'yt-dlp.exe');
   let binary;
