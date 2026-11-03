@@ -1,0 +1,22 @@
+[package]
+name = "clipdrop-clipboard"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "UNLICENSED"
+
+[target.'cfg(windows)'.dependencies]
+clipboard-win = { version = "=5.4.3", features = ["std"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSPasteboard", "NSPasteboardItem"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSEnumerator", "NSString", "NSURL"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "clipboard-smoke"
+path = "src/bin/clipboard-smoke.rs"

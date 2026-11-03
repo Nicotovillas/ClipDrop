@@ -2,7 +2,12 @@
 dist/
 .DS_Store
 node_modules/
-tools/win32/
+tools/win32/*
+!tools/win32/.gitkeep
+/target/
+/src-tauri/gen/
+/crates/*/target/
+/crates/*/Cargo.lock
 .env
 .env.*
 *.p12

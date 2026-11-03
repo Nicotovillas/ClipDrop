@@ -149,7 +149,7 @@ window.addEventListener('keydown', event => {
     $('missing').hidden = false;
     $('missing').textContent = info.platform === 'darwin'
       ? 'Falta yt-dlp. Instalalo desde Terminal con: brew install yt-dlp ffmpeg. Después volvé a abrir ClipDrop.'
-      : 'Falta yt-dlp.exe. Usá el ZIP completo de ClipDrop o instalá yt-dlp y agregalo al PATH.';
+      : 'Falta yt-dlp.exe. Reinstalá ClipDrop con su instalador completo o agregá yt-dlp al PATH.';
   }
   temporarySize(info.temporaryBytes);
 })();

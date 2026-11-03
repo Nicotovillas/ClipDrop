@@ -1,19 +1,33 @@
-# Avisos de Windows
+# Windows: distribución y confianza
 
-Desde 0.2.1, la descarga principal de Windows es `ClipDrop-Setup-x64-0.2.1.exe`: un instalador NSIS por usuario, sin elevación a administrador. Instala la app y yt-dlp; no requiere extraer un ZIP ni instalar herramientas externas. ClipDrop se abre desde el menú Inicio y puede desinstalarse desde Configuración de Windows. No crea un acceso directo en el escritorio ni abre la app al terminar. Las preferencias del usuario se conservan al actualizar y desinstalar; las descargas guardadas no se eliminan.
+El desarrollo 0.3.0 migra ClipDrop a Tauri 2. La última release publicada sigue siendo 0.2.1 (Electron); sus pruebas/escaneos no certifican el paquete nuevo. La migración se prepara localmente sin ejecutar apps/instaladores ni publicar releases.
 
-El formato instalador no sustituye la firma de editor ni evita por sí mismo los avisos de Windows.
+El paquete previsto para Windows es `ClipDrop-Setup-x64-0.3.0.exe`, NSIS por usuario sin elevación requerida por ClipDrop. Incluye yt-dlp fijado por versión y SHA256. Windows usa WebView2: si no está instalado, el bootstrapper de Microsoft puede necesitar acceso a Internet. No se requiere instalar Python o Node para usar ClipDrop.
 
-El aviso que recibió el primer usuario de Windows no fue identificado: sólo se dispone de su descripción informal. No se concluye que fuera SmartScreen, una detección de Defender o un falso positivo.
+ClipDrop se abre desde Inicio. Nuestra plantilla NSIS elimina las opciones de abrir al finalizar y crear un acceso de escritorio, incluso en modo pasivo/silencioso. Las preferencias conservan `%APPDATA%\ClipDrop\preferences.json`, las descargas permanentes nunca se eliminan y los temporales sólo se limpian desde Config. Como los instaladores Electron y Tauri usan registros distintos, una instalación anterior puede quedar listada por separado; no se desinstala automáticamente durante esta migración.
 
-**SmartScreen y editor desconocido.** ClipDrop todavía no cuenta con una firma Authenticode de editor. Microsoft explica que una aplicación nueva puede mostrar advertencias por falta de reputación, incluso si está firmada. Subirla a GitHub, agregar un icono o publicar hashes no sustituye una firma ni garantiza quitar ese aviso. La firma requiere validar una identidad y disponer de un certificado/servicio apropiado; no se contrató ninguno.
+## Firma y avisos
 
-**Detección de malware.** Si Defender muestra una amenaza con nombre, hace falta conservar el nombre, archivo y hash afectados y evaluar ese caso concreto. No darlo por seguro ni asumir un falso positivo. No desactivar Defender/SmartScreen ni agregar exclusiones como solución.
+Aplicación e instalador continúan **sin firma Authenticode de editor**. El cambio de framework o formato, iconos y hashes no evita por sí solo SmartScreen. La firma y la reputación son asuntos separados del tamaño o rendimiento de Electron/Tauri.
 
-Desde 0.2.0, ClipDrop usa directamente la API de archivos del portapapeles de Electron: no ejecuta PowerShell, JXA ni `ExecutionPolicy Bypass` para copiar. El EXE incorpora nombre/producto/versión/icono propios, se ejecuta con permisos del usuario y el motor oficial se fija por versión y SHA256. Son mejoras verificables de distribución; no demuestran que el aviso anterior haya desaparecido.
+El aviso informal del primer usuario Windows no fue identificado. No se concluye que fuera SmartScreen, Defender, malware ni un falso positivo. Si aparece una detección con nombre, hace falta conservar nombre, archivo y hash afectados e investigar ese caso. No desactivar protecciones ni agregar exclusiones como solución.
 
-Cada paquete publicado incluye su SHA256. El motor yt-dlp se descarga del release oficial fijado en `tools/yt-dlp.json`; sus binarios y licencias se verifican antes del empaquetado. Los SHA256 comprueban integridad, no ausencia de malware ni reputación SmartScreen.
+Copiar archivos usa CF_HDROP nativo mediante Rust; no ejecuta PowerShell, JXA ni `ExecutionPolicy Bypass`. Los SHA256 verifican integridad y procedencia, no ausencia de malware ni reputación.
 
-La compilación de GitHub ejecuta pruebas y un roundtrip nativo de archivos del portapapeles en Windows y Mac. En Windows intenta además escanear con Defender dos rutas: la carpeta `win-unpacked` y el EXE del instalador NSIS. El informe `defender-report.json` identifica cada ruta, su cobertura y resultado: `completed`, `skipped` o `detected` (este último hace fallar la compilación). El estado general sólo es `completed` si ambos escaneos terminaron. La verificación estática comprueba la cabecera NSIS y los binarios/fuentes del paquete; no instala, ejecuta ni prueba interactivamente el instalador. Un escaneo omitido no equivale a resultado limpio; ni siquiera un escaneo completado garantiza aceptación por todos los antivirus o por SmartScreen.
+## Verificaciones
 
-Referencias oficiales: [reputación SmartScreen](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation), [opciones de firma](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options), [archivos en el portapapeles de Electron](https://www.electronjs.org/docs/latest/api/clipboard-item#files-the-texturi-list-mime-type).
+Las pruebas locales usan archivos sintéticos y un descargador falso. El motor y portapapeles tienen verificación de compilación Windows; ejecutarlos, probar el roundtrip real y generar/verificar el instalador requieren un entorno Windows. La CI quedó preparada para hacerlo; no se ejecutó como consecuencia de los cambios locales.
+
+El verificador extrae el NSIS con 7-Zip sin ejecutarlo y comprueba cabecera, arquitectura, coincidencia del ejecutable con el build, motor fijado y sus licencias. Defender intenta escanear por separado la carpeta `win-unpacked` y el EXE NSIS; `defender-report.json` distingue `completed`, `skipped` y `detected`. Un scan omitido no equivale a resultado limpio; un scan completado tampoco garantiza aceptación por todos los antivirus o SmartScreen. No se ejecuta interactivamente el instalador.
+
+## Microsoft Store, repositorio privado y costo
+
+La vía gratuita aplicable es **MSIX distribuido mediante Microsoft Store**, tras registro/verificación de identidad y certificación. Se entrega el paquete compilado y no hace falta publicar el repositorio. Microsoft firma ese paquete y administra distribución/actualizaciones. Es posible ocultarlo de búsquedas y compartir el enlace; esa visibilidad no equivale a restringir quién puede descargarlo si tiene el enlace.
+
+El beneficio para un proyecto personal es compartirlo e instalar actualizaciones con menos fricción y sin contratar certificados. Publicarlo no produce ingresos automáticamente ni garantiza usuarios o aprobación. Hay trabajo de empaquetado, ficha, políticas y mantenimiento de cada entrega.
+
+La Store **no firma los instaladores MSI/EXE**, incluido nuestro NSIS. La firma gratuita de Store no proporciona un certificado reutilizable para firmar el EXE publicado en GitHub. SignPath Foundation exige condiciones open source incompatibles con ClipDrop privado/UNLICENSED; autofirmar sirve para pruebas o confianza administrada, no resuelve la confianza pública.
+
+No se eligió/publicó MSIX, registró una cuenta, contrató firma ni cambió repositorio/licencia como parte de la migración.
+
+Referencias: [firma de Windows](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options), [publicación y MSIX](https://learn.microsoft.com/en-us/windows/apps/publish/get-started), [visibilidad por enlace](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/visibility-options), [reputación SmartScreen](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation), [condiciones SignPath](https://signpath.org/terms).

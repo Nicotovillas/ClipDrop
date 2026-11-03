@@ -1,78 +1,27 @@
 {
   "name": "clipdrop",
-  "version": "0.2.1",
-  "description": "Descargador personal con yt-dlp para Windows y macOS",
+  "version": "0.3.0",
+  "description": "Descargador personal Tauri con yt-dlp para Windows y macOS",
   "private": true,
-  "main": "src/main.cjs",
   "author": "Nicolás Tovillas",
   "license": "UNLICENSED",
   "scripts": {
-    "start": "electron .",
-    "test": "node --test tests/*.test.cjs",
-    "check": "node scripts/check.cjs",
+    "start": "tauri dev",
+    "tauri": "tauri",
+    "test": "npm run test:ui && npm run test:rust",
+    "test:ui": "node --test tests/*.test.cjs",
+    "test:rust": "node scripts/prepare-ui.cjs && cargo test --workspace",
+    "check": "node scripts/prepare-ui.cjs && node scripts/check.cjs && cargo fmt --all -- --check && cargo check --workspace",
+    "prepare:ui": "node scripts/prepare-ui.cjs",
     "prepare:windows": "node scripts/prepare-windows.cjs",
-    "build:windows": "npm run build:icons && npm run prepare:windows && electron-builder --win nsis --x64 --publish never",
-    "build:mac": "npm run build:icons && electron-builder --mac zip --arm64 --publish never",
-    "build:icons": "node scripts/build-icons.cjs",
+    "build:windows": "npm run prepare:windows && tauri build --target x86_64-pc-windows-msvc --bundles nsis && node scripts/collect-packages.cjs",
     "verify:windows": "node scripts/verify-package.cjs",
+    "build:mac": "tauri build --target aarch64-apple-darwin --bundles app && node scripts/collect-packages.cjs",
+    "build:icons": "node scripts/build-icons.cjs",
     "checksums": "node scripts/checksums.cjs"
   },
-  "build": {
-    "appId": "local.nit.clipdrop",
-    "productName": "ClipDrop",
-    "asar": true,
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "package.json",
-      "README.md",
-      "WINDOWS.md"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "signAndEditExecutable": true,
-      "extraResources": [
-        {
-          "from": "tools/win32",
-          "to": "tools"
-        }
-      ],
-      "signExecutable": false,
-      "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "asInvoker"
-    },
-    "mac": {
-      "target": [
-        "zip"
-      ],
-      "identity": null,
-      "notarize": false,
-      "category": "public.app-category.utilities",
-      "artifactName": "ClipDrop-Mac-${arch}-${version}.${ext}",
-      "icon": "assets/icon.icns"
-    },
-    "copyright": "Copyright © 2026 Nicolás Tovillas",
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "allowElevation": false,
-      "packElevateHelper": false,
-      "createDesktopShortcut": false,
-      "createStartMenuShortcut": true,
-      "deleteAppDataOnUninstall": false,
-      "runAfterFinish": false,
-      "differentialPackage": false,
-      "artifactName": "ClipDrop-Setup-${arch}-${version}.${ext}"
-    }
-  },
   "devDependencies": {
-    "electron": "45.2.1",
-    "electron-builder": "26.18.1",
+    "@tauri-apps/cli": "2.12.4",
     "jsdom": "29.0.1",
     "sharp": "0.35.5"
   },

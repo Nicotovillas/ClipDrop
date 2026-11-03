@@ -1,0 +1,28 @@
+'use strict';
+// Copies/archives build output. Does not run the app or installers.
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const root = path.resolve(__dirname, '..');
+const dist = path.join(root, 'dist');
+const version = require('../package.json').version;
+fs.mkdirSync(dist, { recursive: true });
+if (process.platform === 'win32') {
+  const release = path.join(root, 'target', 'x86_64-pc-windows-msvc', 'release');
+  const installer = path.join(release, 'bundle', 'nsis', `ClipDrop_${version}_x64-setup.exe`);
+  fs.copyFileSync(installer, path.join(dist, `ClipDrop-Setup-x64-${version}.exe`));
+  const unpacked = path.join(dist, 'win-unpacked');
+  fs.rmSync(unpacked, { recursive: true, force: true });
+  fs.mkdirSync(unpacked, { recursive: true });
+  fs.copyFileSync(path.join(release, 'clipdrop.exe'), path.join(unpacked, 'ClipDrop.exe'));
+  fs.cpSync(path.join(root, 'tools', 'win32'), path.join(unpacked, 'tools'), { recursive: true });
+} else if (process.platform === 'darwin') {
+  const bundle = path.join(root, 'target', 'aarch64-apple-darwin', 'release', 'bundle', 'macos', 'ClipDrop.app');
+  // Local ad hoc signing seals the bundle/resources; it does not grant Apple
+  // Developer ID trust or notarization and never contacts a signing service.
+  execFileSync('/usr/bin/codesign', ['--force', '--sign', '-', bundle], { stdio: 'inherit' });
+  execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle], { stdio: 'inherit' });
+  execFileSync('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', bundle,
+    path.join(dist, `ClipDrop-Mac-arm64-${version}.zip`)], { stdio: 'inherit' });
+} else throw new Error('Compilá los paquetes en Windows o Mac.');
+console.log(`Paquete Tauri ${version} preparado en dist.`);

@@ -1,6 +1,6 @@
 # ClipDrop
 
-App personal Electron para Windows (principal) y macOS que usa yt-dlp.
+App personal Tauri 2 (Rust + HTML/CSS/JavaScript) para Windows (principal) y macOS que usa yt-dlp.
 No usar Python para la GUI.
 
 - No iniciar la app ni servidores salvo pedido explícito. Build y pruebas finitas del motor sí están permitidos.
