@@ -1,0 +1,11 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const { createHash } = require('node:crypto');
+const directory = path.resolve(__dirname, '..', 'dist');
+const version = require('../package.json').version;
+const archives = fs.readdirSync(directory).filter(name => name.endsWith(`-${version}.zip`) && name.startsWith('ClipDrop-')).sort();
+if (!archives.length) throw new Error('No hay paquetes de esta versión para verificar.');
+const lines = archives.map(name => `${createHash('sha256').update(fs.readFileSync(path.join(directory, name))).digest('hex')}  ${name}`);
+fs.writeFileSync(path.join(directory, `SHA256SUMS-${version}.txt`), lines.join('\n') + '\n');
+console.log(lines.join('\n'));

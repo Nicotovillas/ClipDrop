@@ -1,0 +1,10 @@
+.build/
+dist/
+.DS_Store
+node_modules/
+tools/win32/
+.env
+.env.*
+*.p12
+*.pfx
+*.pem

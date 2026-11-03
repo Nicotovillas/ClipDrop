@@ -1,0 +1,59 @@
+name: Build and verify
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - name: Native file clipboard roundtrip (no window)
+        run: npx --no-install electron scripts/clipboard-smoke.cjs
+      - if: runner.os == 'Windows'
+        run: npm run build:windows
+      - if: runner.os == 'macOS'
+        run: npm run build:mac
+      - if: runner.os == 'Windows'
+        run: npm run verify:windows
+      - name: Verify Windows product identity
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $info = (Get-Item dist/win-unpacked/ClipDrop.exe).VersionInfo
+          if ($info.ProductName -ne 'ClipDrop') { throw 'Missing ClipDrop product metadata.' }
+          Write-Host "Product: $($info.ProductName); Version: $($info.ProductVersion)"
+          Write-Host "Authenticode: $((Get-AuthenticodeSignature dist/win-unpacked/ClipDrop.exe).Status)"
+      - name: Defender scan when available
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/scan-windows.ps1
+      - run: npm run checksums
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipDrop-${{ runner.os }}
+          path: |
+            dist/ClipDrop-*.zip
+            dist/SHA256SUMS-*.txt
+            dist/defender-report.json
+          if-no-files-found: error
+          retention-days: 14
