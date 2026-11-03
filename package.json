@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "description": "Descargador personal Tauri con yt-dlp para Windows y macOS",
   "private": true,
-  "author": "Nicolás Tovillas",
+  "author": "nit Labs",
   "license": "UNLICENSED",
   "scripts": {
     "start": "tauri dev",

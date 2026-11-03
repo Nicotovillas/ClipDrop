@@ -1,12 +1,23 @@
 # Microsoft Store
 
-La distribución Store usa un MSIX independiente del instalador NSIS de GitHub. El código y el repositorio siguen siendo privados. No se contrató ningún servicio de firma ni se envió una app a certificación.
+La distribución Store usa un MSIX independiente del instalador NSIS de GitHub. El código y el repositorio siguen siendo privados. El usuario creó el producto en Partner Center; no se contrató ningún servicio de firma ni se envió una app a certificación.
 
-## Alta gratuita y datos que faltan
+## Identidad del producto
+
+Valores proporcionados por el usuario desde Partner Center. Son los metadatos que se incluyen en el manifiesto del paquete.
+
+| Campo | Valor |
+| --- | --- |
+| `STORE_IDENTITY_NAME` | `nitLabs.ClipDrop` |
+| `STORE_PUBLISHER` | `CN=7619262E-634E-4862-89B6-0F9380587459` |
+| `STORE_PUBLISHER_DISPLAY_NAME` | `nit Labs` |
+| `STORE_DISPLAY_NAME` | `ClipDrop` |
+
+## Alta gratuita y consulta de identidad
 
 1. Entrar por [storedeveloper.microsoft.com](https://storedeveloper.microsoft.com/), elegir **Get started for free → Individual developer** y usar una cuenta Microsoft personal. Ese es el flujo gratuito; otros accesos pueden mostrar el registro anterior.
 2. Completar perfil y verificación con documento y selfie directamente en Microsoft.
-3. En Partner Center, crear un producto **MSIX o PWA** y reservar un nombre disponible. La disponibilidad de «ClipDrop» todavía no está comprobada.
+3. En Partner Center, crear un producto **MSIX o PWA** y reservar un nombre disponible. El producto actual ya tiene identidad asignada; no hay que crear otro para subir su paquete.
 4. Abrir **Product management → Product identity** y copiar `Package/Identity/Name`, `Package/Identity/Publisher` y `Package/Properties/PublisherDisplayName`. Conservar también el nombre de producto reservado. No hacen falta contraseñas, tokens, documentos ni selfies para configurar el paquete.
 
 Fuentes: [alta de desarrollador](https://learn.microsoft.com/en-us/windows/apps/publish/partner-center/open-a-developer-account?tabs=individual), [publicación MSIX](https://learn.microsoft.com/en-us/windows/apps/publish/get-started) e [identidad del producto](https://learn.microsoft.com/en-us/windows/apps/publish/view-app-identity-details).

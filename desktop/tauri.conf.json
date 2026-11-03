@@ -35,7 +35,7 @@
     ],
     "category": "Utility",
     "shortDescription": "Descargador personal de videos",
-    "copyright": "Copyright © 2026 Nicolás Tovillas",
+    "copyright": "Copyright © 2026 nit Labs",
     "icon": [
       "icons/icon.png",
       "icons/icon.ico",
@@ -44,6 +44,6 @@
     "macOS": {
       "minimumSystemVersion": "11.0"
     },
-    "publisher": "Nicolás Tovillas"
+    "publisher": "nit Labs"
   }
 }
