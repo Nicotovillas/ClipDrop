@@ -70,13 +70,13 @@ if (-not [ScreenshotDesktop]::CurrentMode([ref]$originalMode)) {
     throw "Cannot query display; Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error()); bounds $([Windows.Forms.Screen]::PrimaryScreen.Bounds)"
 }
 $mode = $originalMode
-$mode.PelsWidth = 1366
-$mode.PelsHeight = 768
+$mode.PelsWidth = 1920
+$mode.PelsHeight = 1080
 $mode.Fields = 0x180000
 $resolutionResult = [ScreenshotDesktop]::ChangeDisplaySettings([ref]$mode, 0)
 if ($resolutionResult -ne 0) {
-    $mode.PelsWidth = 1920
-    $mode.PelsHeight = 1080
+    $mode.PelsWidth = 1366
+    $mode.PelsHeight = 768
     $resolutionResult = [ScreenshotDesktop]::ChangeDisplaySettings([ref]$mode, 0)
 }
 # This is the runner desktop, not an image background added after capture.
@@ -91,6 +91,11 @@ try {
     if ($screen.Width -lt 1366 -or $screen.Height -lt 768) {
         throw "Desktop too small: $($screen.Width)x$($screen.Height); display change result $resolutionResult"
     }
+    # Minimize the runner's terminal before opening the app. The central crop of
+    # the larger desktop also excludes desktop shortcuts and the OS watermark.
+    $shell = New-Object -ComObject Shell.Application
+    $shell.MinimizeAll()
+    Start-Sleep -Seconds 1
     $app = Start-Process -FilePath $executable -WorkingDirectory $unpacked -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
     do {
