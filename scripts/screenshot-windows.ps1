@@ -48,7 +48,8 @@ public static class ScreenshotDesktop {
     [StructLayout(LayoutKind.Sequential)]
     public struct Rect { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool EnumDisplaySettings(string device, int mode, ref Mode settings);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool EnumDisplaySettings(string device, int mode, ref Mode settings);
+    public static bool CurrentMode(ref Mode settings) { return EnumDisplaySettings(null, -1, ref settings); }
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int ChangeDisplaySettings(ref Mode settings, uint flags);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
@@ -64,7 +65,10 @@ public static class ScreenshotDesktop {
 [ScreenshotDesktop]::SetProcessDPIAware() | Out-Null
 $originalMode = New-Object ScreenshotDesktop+Mode
 $originalMode.Size = [Runtime.InteropServices.Marshal]::SizeOf($originalMode)
-if (-not [ScreenshotDesktop]::EnumDisplaySettings($null, -1, [ref]$originalMode)) { throw 'Cannot query display.' }
+Write-Host "Capture process session: $((Get-Process -Id $PID).SessionId); interactive: $([Environment]::UserInteractive); display mode structure: $($originalMode.Size) bytes"
+if (-not [ScreenshotDesktop]::CurrentMode([ref]$originalMode)) {
+    throw "Cannot query display; Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error()); bounds $([Windows.Forms.Screen]::PrimaryScreen.Bounds)"
+}
 $mode = $originalMode
 $mode.PelsWidth = 1366
 $mode.PelsHeight = 768
