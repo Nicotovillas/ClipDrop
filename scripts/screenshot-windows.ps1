@@ -53,6 +53,7 @@ public static class ScreenshotDesktop {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int ChangeDisplaySettings(ref Mode settings, uint flags);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out Rect rect, int size);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string name, string title);
@@ -86,6 +87,7 @@ $taskbar = [ScreenshotDesktop]::FindWindow('Shell_TrayWnd', $null)
 [ScreenshotDesktop]::ShowWindow($taskbar, 0) | Out-Null
 $app = $null
 $closed = $false
+$originalBrowserArguments = $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
 try {
     $screen = [Windows.Forms.Screen]::PrimaryScreen.Bounds
     if ($screen.Width -lt 1366 -or $screen.Height -lt 768) {
@@ -96,6 +98,9 @@ try {
     $shell = New-Object -ComObject Shell.Application
     $shell.MinimizeAll()
     Start-Sleep -Seconds 1
+    # Render the existing UI at high density; do not resize a bitmap or change
+    # the app's HTML, CSS, executable, or saved preferences.
+    $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--force-device-scale-factor=2.4'
     $app = Start-Process -FilePath $executable -WorkingDirectory $unpacked -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
     do {
@@ -107,14 +112,14 @@ try {
     if ($hwnd -eq [IntPtr]::Zero) { throw 'ClipDrop did not create a window.' }
     $rect = New-Object ScreenshotDesktop+Rect
     if (-not [ScreenshotDesktop]::GetWindowRect($hwnd, [ref]$rect)) { throw 'Cannot measure ClipDrop window.' }
-    $width = $rect.Right - $rect.Left
-    $height = $rect.Bottom - $rect.Top
-    $captureX = $screen.X + [int](($screen.Width - 1366) / 2)
-    $captureY = $screen.Y + [int](($screen.Height - 768) / 2)
-    $x = $captureX + [int]((1366 - $width) / 2)
-    $y = $captureY + [int]((768 - $height) / 2) - 50
+    $frame = New-Object ScreenshotDesktop+Rect
+    if ([ScreenshotDesktop]::DwmGetWindowAttribute($hwnd, 9, [ref]$frame, 16) -ne 0) { throw 'Cannot measure visible window frame.' }
+    $invisibleWidth = ($rect.Right - $rect.Left) - ($frame.Right - $frame.Left)
+    $invisibleHeight = ($rect.Bottom - $rect.Top) - ($frame.Bottom - $frame.Top)
+    $x = $screen.X + [int](($screen.Width - 1366 - $invisibleWidth) / 2)
+    $y = $screen.Y + [int](($screen.Height - 768 - $invisibleHeight) / 2)
     [ScreenshotDesktop]::ShowWindow($hwnd, 9) | Out-Null
-    [ScreenshotDesktop]::SetWindowPos($hwnd, [IntPtr]::Zero, $x, $y, 0, 0, 0x0001 -bor 0x0040) | Out-Null
+    [ScreenshotDesktop]::SetWindowPos($hwnd, [IntPtr]::Zero, $x, $y, (1366 + $invisibleWidth), (768 + $invisibleHeight), 0x0040) | Out-Null
     [ScreenshotDesktop]::SetForegroundWindow($hwnd) | Out-Null
 
     # UI Automation verifies the real WebView rendered before capturing pixels.
@@ -131,23 +136,14 @@ try {
     if ($names -match 'Falta yt-dlp|No se pudo|Reinstal') { throw 'The app shows a startup error.' }
     [ScreenshotDesktop]::SetCursorPos($screen.Right - 1, $screen.Bottom - 1) | Out-Null
     Start-Sleep -Seconds 2
+    if ([ScreenshotDesktop]::DwmGetWindowAttribute($hwnd, 9, [ref]$frame, 16) -ne 0) { throw 'Cannot measure capture frame.' }
+    if (($frame.Right - $frame.Left) -ne 1366 -or ($frame.Bottom - $frame.Top) -ne 768) { throw 'Unexpected window capture size.' }
     $bitmap = New-Object Drawing.Bitmap 1366, 768
     $graphics = [Drawing.Graphics]::FromImage($bitmap)
     try {
-        $graphics.CopyFromScreen($captureX, $captureY, 0, 0, $bitmap.Size)
+        $graphics.CopyFromScreen($frame.Left, $frame.Top, 0, 0, $bitmap.Size)
         $bitmap.Save((Join-Path $output 'ClipDrop-Windows-1366x768.png'), [Drawing.Imaging.ImageFormat]::Png)
     } finally { $graphics.Dispose(); $bitmap.Dispose() }
-
-    # Keep a direct native-window capture as an independent visual diagnostic.
-    $windowBitmap = New-Object Drawing.Bitmap $width, $height
-    $graphics = [Drawing.Graphics]::FromImage($windowBitmap)
-    try {
-        $dc = $graphics.GetHdc()
-        try { $printed = [ScreenshotDesktop]::PrintWindow($hwnd, $dc, 2) }
-        finally { $graphics.ReleaseHdc($dc) }
-        if (-not $printed) { throw 'Native window capture failed.' }
-        $windowBitmap.Save((Join-Path $output 'ClipDrop-window-diagnostic.png'), [Drawing.Imaging.ImageFormat]::Png)
-    } finally { $graphics.Dispose(); $windowBitmap.Dispose() }
 } finally {
     if ($null -ne $app) {
         $app.Refresh()
@@ -159,6 +155,7 @@ try {
     }
     [ScreenshotDesktop]::ShowWindow($taskbar, 5) | Out-Null
     [ScreenshotDesktop]::ChangeDisplaySettings([ref]$originalMode, 0) | Out-Null
+    $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = $originalBrowserArguments
 }
 if (-not $closed) { throw 'ClipDrop did not close.' }
 $evidence = [ordered]@{
@@ -166,7 +163,8 @@ $evidence = [ordered]@{
     sourceCommit = $report.sourceCommit
     msixSha256 = $expectedHash
     executableSha256 = $report.payload.'ClipDrop.exe'
-    capture = 'Real Windows desktop, unmodified pixels; app at its native compact size'
+    capture = 'Real Windows window only, unmodified pixels; resized window with high-density WebView rendering'
+    requestedWebViewScale = 2.4
     width = 1366
     height = 768
     launchedOnlyOnCi = $true
