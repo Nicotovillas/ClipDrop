@@ -98,9 +98,9 @@ try {
     $shell = New-Object -ComObject Shell.Application
     $shell.MinimizeAll()
     Start-Sleep -Seconds 1
-    # Render the existing UI at high density; do not resize a bitmap or change
-    # the app's HTML, CSS, executable, or saved preferences.
-    $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--force-device-scale-factor=2.4'
+    # The debugging endpoint exists only in this disposable runner. It applies
+    # display zoom to the live page, without editing source or packaged files.
+    $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
     $app = Start-Process -FilePath $executable -WorkingDirectory $unpacked -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
     do {
@@ -121,6 +121,34 @@ try {
     [ScreenshotDesktop]::ShowWindow($hwnd, 9) | Out-Null
     [ScreenshotDesktop]::SetWindowPos($hwnd, [IntPtr]::Zero, $x, $y, (1366 + $invisibleWidth), (768 + $invisibleHeight), 0x0040) | Out-Null
     [ScreenshotDesktop]::SetForegroundWindow($hwnd) | Out-Null
+
+    $page = $null
+    do {
+        Start-Sleep -Milliseconds 300
+        try {
+            $pages = Invoke-RestMethod 'http://127.0.0.1:9222/json/list'
+            $page = $pages | Where-Object { $_.type -eq 'page' -and $_.url -match '^https?://tauri\.localhost/?' } | Select-Object -First 1
+        } catch { }
+    } while ($null -eq $page -and [DateTime]::UtcNow -lt $deadline)
+    if ($null -eq $page) { throw 'The runner-only WebView zoom endpoint is unavailable.' }
+    $socket = New-Object Net.WebSockets.ClientWebSocket
+    try {
+        $token = [Threading.CancellationToken]::None
+        $socket.ConnectAsync([Uri]$page.webSocketDebuggerUrl, $token).GetAwaiter().GetResult()
+        $command = @{ id = 1; method = 'Runtime.evaluate'; params = @{
+            expression = "document.documentElement.style.zoom = '2.4'; ({ zoom: getComputedStyle(document.documentElement).zoom, width: innerWidth })"
+            returnByValue = $true
+        }} | ConvertTo-Json -Depth 5 -Compress
+        $bytes = [Text.Encoding]::UTF8.GetBytes($command)
+        $socket.SendAsync([ArraySegment[byte]]::new($bytes), [Net.WebSockets.WebSocketMessageType]::Text, $true, $token).GetAwaiter().GetResult()
+        do {
+            $buffer = New-Object byte[] 65536
+            $received = $socket.ReceiveAsync([ArraySegment[byte]]::new($buffer), $token).GetAwaiter().GetResult()
+            if (-not $received.EndOfMessage) { throw 'Unexpected zoom response size.' }
+            $response = [Text.Encoding]::UTF8.GetString($buffer, 0, $received.Count) | ConvertFrom-Json
+        } while ($response.id -ne 1)
+        if ($response.error -or $response.result.exceptionDetails -or $response.result.result.value.zoom -ne '2.4') { throw 'Live display zoom failed.' }
+    } finally { $socket.Dispose() }
 
     # UI Automation verifies the real WebView rendered before capturing pixels.
     $names = @()
@@ -163,8 +191,8 @@ $evidence = [ordered]@{
     sourceCommit = $report.sourceCommit
     msixSha256 = $expectedHash
     executableSha256 = $report.payload.'ClipDrop.exe'
-    capture = 'Real Windows window only, unmodified pixels; resized window with high-density WebView rendering'
-    requestedWebViewScale = 2.4
+    capture = 'Real Windows window only; live UI display zoom 240%, no bitmap scaling or desktop padding'
+    webViewDisplayZoom = 2.4
     width = 1366
     height = 768
     launchedOnlyOnCi = $true
