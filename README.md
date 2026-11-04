@@ -51,4 +51,4 @@ Si el sitio pide sesión, elegí tu navegador en **Config → Opciones avanzadas
 
 Windows sigue sin firma de editor y Mac sin notarización de Apple.
 
-Repositorio privado. Uso personal, sin licencia pública otorgada.
+Uso personal, sin licencia pública otorgada.

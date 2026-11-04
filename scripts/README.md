@@ -50,7 +50,7 @@ La CI ejecuta pruebas, un roundtrip nativo con archivos sintéticos en su escrit
 
 Windows sigue sin Authenticode: iconos, hashes, Tauri y escaneos no eliminan SmartScreen ni garantizan aceptación por todos los antivirus. El aviso informal de la primera versión no se identificó. Una detección con nombre debe investigarse conservando archivo y hash; no se desactivan protecciones como solución.
 
-Store/MSIX permite firma gratuita después de certificación conservando el repositorio privado; no firma el EXE NSIS de GitHub. El empaquetado se prepara con `npm run build:store` y la identidad asignada por Partner Center. [Identidad, configuración y validaciones pendientes](../desktop/store/README.md). El usuario ya creó el producto; su certificación y publicación siguen pendientes.
+Store/MSIX permite firma gratuita después de certificación; no firma el EXE NSIS de GitHub. El empaquetado se prepara con `npm run build:store` y la identidad asignada por Partner Center. [Identidad, configuración y validaciones pendientes](../desktop/store/README.md). Según lo informado por el usuario el 4 de noviembre de 2026, la aplicación fue enviada y está esperando la certificación de Microsoft.
 
 Las releases usan los artefactos exactos de una CI aprobada y el mismo commit probado. El workflow de adjuntos valida commit, nombres y SHA256 antes de subirlos a un borrador.
 
