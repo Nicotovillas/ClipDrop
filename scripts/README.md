@@ -53,3 +53,5 @@ Windows sigue sin Authenticode: iconos, hashes, Tauri y escaneos no eliminan Sma
 Store/MSIX permite firma gratuita después de certificación conservando el repositorio privado; no firma el EXE NSIS de GitHub. El empaquetado se prepara con `npm run build:store` y la identidad asignada por Partner Center. [Identidad, configuración y validaciones pendientes](../desktop/store/README.md). El usuario ya creó el producto; su certificación y publicación siguen pendientes.
 
 Las releases usan los artefactos exactos de una CI aprobada y el mismo commit probado. El workflow de adjuntos valida commit, nombres y SHA256 antes de subirlos a un borrador.
+
+La captura para Store tiene un workflow manual separado, **Capture Windows Store screenshot**. Requiere autorizar explícitamente `allow_app_launch`; sólo entonces `screenshot-windows.ps1` abre en el runner Windows el ejecutable extraído del MSIX aprobado, captura su pantalla inicial y lo cierra. No instala el paquete, descarga videos ni lee sesiones. Verifica el SHA256 del artefacto original y conserva la procedencia junto al PNG; no valida el comportamiento con identidad MSIX. El script rechaza ejecutarse fuera de esa CI.

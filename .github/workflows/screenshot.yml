@@ -1,0 +1,37 @@
+name: Capture Windows Store screenshot
+on:
+  workflow_dispatch:
+    inputs:
+      allow_app_launch:
+        description: Open the verified app ONLY on this Windows runner, capture it, then close it
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  screenshot:
+    if: inputs.allow_app_launch
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Download the existing approved Store build (no rebuild)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 41741531111 --repo Nicotovillas/ClipDrop --name ClipDrop-Store-UNSIGNED-SUBMISSION --dir .build/screenshot-package
+      - name: Capture the real Windows app and close it
+        shell: powershell
+        env:
+          CLIPDROP_ALLOW_CI_SCREENSHOT: 'true'
+        run: ./scripts/screenshot-windows.ps1
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: ClipDrop-Store-Screenshot
+          path: dist/store-listing/*
+          if-no-files-found: error
+          retention-days: 14
