@@ -1,8 +1,6 @@
-# Privacidad de ClipDrop — borrador
+# Política de privacidad de ClipDrop
 
-**Pendiente antes de publicar:** confirmar responsable y contacto, completar fecha de vigencia y alojar el texto en una URL pública. Este archivo del repositorio privado todavía no es una política publicada.
-
-Responsable: **[COMPLETAR]**. Contacto de privacidad y soporte: **[COMPLETAR]**. Fecha de vigencia: **[COMPLETAR]**.
+Publicador: **nit Labs**. Contacto de privacidad y soporte: [nicotovi.nt@gmail.com](mailto:nicotovi.nt@gmail.com). Fecha de vigencia: **3 de noviembre de 2026**.
 
 ClipDrop es una aplicación de escritorio para descargar videos mediante yt-dlp y guardarlos o copiarlos como archivos. La versión actual no incorpora cuentas propias, publicidad, analítica ni un servidor del desarrollador que reciba los enlaces o archivos utilizados.
 
@@ -24,6 +22,8 @@ ClipDrop conserva la carpeta de destino en un archivo local de preferencias. Los
 
 Podés eliminar los temporales propios desde **Config → Eliminar**. Esta función conserva las descargas guardadas. La aplicación receptora del pegado puede acceder al archivo conforme a sus propias funciones y políticas.
 
+El acceso a los archivos locales depende de los permisos de tu cuenta y del sistema operativo. ClipDrop no implementa cifrado propio para los archivos descargados, los temporales ni las preferencias. El publicador no conserva copias de tus enlaces, cookies o videos en servidores propios.
+
 ## Control y consultas
 
-Podés usar la descarga sin seleccionar una sesión de navegador, cancelar una operación y eliminar los archivos guardados desde el sistema operativo. Para consultas sobre la privacidad de ClipDrop, usá el contacto indicado al inicio de esta política.
+Podés usar la descarga sin seleccionar una sesión de navegador, cancelar una operación y eliminar los archivos guardados y las preferencias desde el sistema operativo. Para consultas sobre la privacidad de ClipDrop, usá el contacto indicado al inicio de esta política.
