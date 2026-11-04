@@ -88,6 +88,8 @@ $taskbar = [ScreenshotDesktop]::FindWindow('Shell_TrayWnd', $null)
 $app = $null
 $closed = $false
 $originalBrowserArguments = $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+$browserPolicy = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments'
+$originalPolicy = Get-ItemPropertyValue -Path $browserPolicy -Name 'ClipDrop.exe' -ErrorAction SilentlyContinue
 try {
     $screen = [Windows.Forms.Screen]::PrimaryScreen.Bounds
     if ($screen.Width -lt 1366 -or $screen.Height -lt 768) {
@@ -101,6 +103,10 @@ try {
     # The debugging endpoint exists only in this disposable runner. It applies
     # display zoom to the live page, without editing source or packaged files.
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+    # Hosted runners are elevated; WebView2 ignores environment overrides there.
+    # Scope the temporary machine policy to this executable and restore it below.
+    New-Item -Path $browserPolicy -Force | Out-Null
+    New-ItemProperty -Path $browserPolicy -Name 'ClipDrop.exe' -Value '--remote-debugging-port=9222' -PropertyType String -Force | Out-Null
     $app = Start-Process -FilePath $executable -WorkingDirectory $unpacked -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
     do {
@@ -184,6 +190,11 @@ try {
     [ScreenshotDesktop]::ShowWindow($taskbar, 5) | Out-Null
     [ScreenshotDesktop]::ChangeDisplaySettings([ref]$originalMode, 0) | Out-Null
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = $originalBrowserArguments
+    if ($null -ne $originalPolicy) {
+        Set-ItemProperty -Path $browserPolicy -Name 'ClipDrop.exe' -Value $originalPolicy
+    } else {
+        Remove-ItemProperty -Path $browserPolicy -Name 'ClipDrop.exe' -ErrorAction SilentlyContinue
+    }
 }
 if (-not $closed) { throw 'ClipDrop did not close.' }
 $evidence = [ordered]@{
