@@ -7,6 +7,18 @@ on:
         required: true
         type: boolean
         default: false
+      store_run_id:
+        description: Successful Prepare Microsoft Store MSIX run in this repository
+        required: true
+        type: string
+      source_commit:
+        description: Full commit SHA of the reviewed Store build
+        required: true
+        type: string
+      msix_sha256:
+        description: SHA256 of the reviewed unsigned Store MSIX
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,12 +29,30 @@ jobs:
     if: inputs.allow_app_launch
     runs-on: windows-latest
     timeout-minutes: 8
+    env:
+      GH_REPO: ${{ github.repository }}
+      CLIPDROP_STORE_RUN_ID: ${{ inputs.store_run_id }}
+      CLIPDROP_STORE_SOURCE_COMMIT: ${{ inputs.source_commit }}
+      CLIPDROP_STORE_MSIX_SHA256: ${{ inputs.msix_sha256 }}
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Download the existing approved Store build (no rebuild)
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download 41741531111 --repo Nicotovillas/ClipDrop --name ClipDrop-Store-UNSIGNED-SUBMISSION --dir .build/screenshot-package
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:CLIPDROP_STORE_RUN_ID -cnotmatch '\A[1-9][0-9]{0,19}\z') { throw 'Invalid Store run ID.' }
+          if ($env:CLIPDROP_STORE_SOURCE_COMMIT -cnotmatch '\A[a-f0-9]{40}\z') { throw 'Invalid Store source commit.' }
+          if ($env:CLIPDROP_STORE_MSIX_SHA256 -cnotmatch '\A[a-f0-9]{64}\z') { throw 'Invalid Store MSIX SHA256.' }
+          $runJson = gh api "repos/$env:GH_REPO/actions/runs/$env:CLIPDROP_STORE_RUN_ID"
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect the Store run.' }
+          $sourceRun = $runJson | ConvertFrom-Json
+          if ($sourceRun.repository.full_name -ne $env:GH_REPO -or $sourceRun.path -ne '.github/workflows/store.yml' -or
+              $sourceRun.status -ne 'completed' -or $sourceRun.conclusion -ne 'success' -or
+              $sourceRun.head_sha -cne $env:CLIPDROP_STORE_SOURCE_COMMIT) { throw 'The Store run does not match the reviewed build.' }
+          gh run download $env:CLIPDROP_STORE_RUN_ID --repo $env:GH_REPO --name ClipDrop-Store-UNSIGNED-SUBMISSION --dir .build/screenshot-package
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot download the approved Store artifact.' }
       - name: Capture the real Windows app and close it
         shell: powershell
         env:

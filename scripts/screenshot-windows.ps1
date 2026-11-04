@@ -5,17 +5,23 @@ $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or $env:CLIPDROP_ALLOW_CI_SCREENSHOT -ne 'true') {
     throw 'App launch is allowed only in the explicitly authorized Windows screenshot workflow.'
 }
+if ($env:CLIPDROP_STORE_RUN_ID -cnotmatch '\A[1-9][0-9]{0,19}\z' -or
+    $env:CLIPDROP_STORE_SOURCE_COMMIT -cnotmatch '\A[a-f0-9]{40}\z' -or
+    $env:CLIPDROP_STORE_MSIX_SHA256 -cnotmatch '\A[a-f0-9]{64}\z') {
+    throw 'Explicit reviewed Store run, source commit and MSIX SHA256 are required.'
+}
 
 $root = Split-Path $PSScriptRoot -Parent
 $packageDirectory = Join-Path $root '.build/screenshot-package'
 $output = Join-Path $root 'dist/store-listing'
 $unpacked = Join-Path $env:RUNNER_TEMP 'clipdrop-screenshot-app'
-$expectedHash = '252c28872cc1990b4c13aae8595eb7a8c924eb24dbe08d1b6b419a8592def442'
+$expectedHash = $env:CLIPDROP_STORE_MSIX_SHA256
 $report = Get-Content (Join-Path $packageDirectory 'store-report.json') -Raw | ConvertFrom-Json
-if ($report.sourceCommit -ne '3a755fadeef38dbf7d2e62c5b8884be40e81d592' -or $report.identity.test -ne $false) {
+if ($report.sourceCommit -cne $env:CLIPDROP_STORE_SOURCE_COMMIT -or $report.identity.test -ne $false -or
+    $report.sha256 -cne $expectedHash -or $report.packageName -cnotmatch '\AClipDrop-Store-x64-[0-9]+\.[0-9]+\.[0-9]+\.0\.msix\z') {
     throw 'Unexpected source package.'
 }
-$package = Join-Path $packageDirectory 'ClipDrop-Store-x64-1.3.1.0.msix'
+$package = Join-Path $packageDirectory $report.packageName
 if ((Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expectedHash) {
     throw 'The MSIX does not match the approved artifact.'
 }
@@ -198,7 +204,7 @@ try {
 }
 if (-not $closed) { throw 'ClipDrop did not close.' }
 $evidence = [ordered]@{
-    sourceRun = 41741531111
+    sourceRun = $env:CLIPDROP_STORE_RUN_ID
     sourceCommit = $report.sourceCommit
     msixSha256 = $expectedHash
     executableSha256 = $report.payload.'ClipDrop.exe'
